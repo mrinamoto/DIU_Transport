@@ -1,0 +1,61 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "RunDemo",
+            "request": "launch",
+            "mainClass": "RunDemo",
+            "projectName": "DIU Transport_a15afddf"
+        },
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "gui.Main",
+            "projectName": "DIU Transport_a15afddf"
+        },
+        {
+            "type": "java",
+            "name": "DIUTransportSystem",
+            "request": "launch",
+            "mainClass": "DIUTransportSystem",
+            "projectName": "DIU Transport_a15afddf"
+        },
+        {
+            "type": "java",
+            "name": "LoginFrame",
+            "request": "launch",
+            "mainClass": "gui.LoginFrame",
+            "projectName": "DIU Transport_a15afddf"
+        },
+        {
+            "type": "java",
+            "name": "Launch LoginFrame",
+            "request": "launch",
+            "mainClass": "gui.LoginFrame",
+            "projectName": "TransportSystem",
+            "classPaths": [
+                "${workspaceFolder}/bin",
+                "${workspaceFolder}/lib/*"
+            ]
+        },
+        {
+            "type": "java",
+            "name": "Launch AdminDashboard",
+            "request": "launch",
+            "mainClass": "gui.AdminDashboard",
+            "projectName": "TransportSystem",
+            "classPaths": [
+                "${workspaceFolder}/bin",
+                "${workspaceFolder}/lib/*"
+            ]
+        },
+        {
+            "type": "java",
+            "name": "Launch Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        }
+    ]
+}
