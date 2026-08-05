@@ -1,0 +1,142 @@
+{
+  "manifest": {
+    "format": "phase3-sanitized-json-rehearsal",
+    "schema_version": 2,
+    "generated_at": "2026-08-05T11:53:38.240Z",
+    "tables": [
+      {
+        "table": "users",
+        "row_count": 1
+      },
+      {
+        "table": "buses",
+        "row_count": 2
+      },
+      {
+        "table": "drivers",
+        "row_count": 2
+      },
+      {
+        "table": "routes",
+        "row_count": 2
+      },
+      {
+        "table": "route_stops",
+        "row_count": 0
+      },
+      {
+        "table": "schedules",
+        "row_count": 2
+      },
+      {
+        "table": "audit_logs",
+        "row_count": 0
+      }
+    ],
+    "excluded_fields": [
+      "users.full_name",
+      "users.email",
+      "users.password_hash",
+      "drivers.full_name",
+      "drivers.phone"
+    ],
+    "warning": "Sanitized rehearsal only; not a PostgreSQL import artifact."
+  },
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "role": "ADMIN",
+        "status": "ACTIVE",
+        "created_at": "2026-08-05 10:57:02",
+        "updated_at": "2026-08-05 10:57:02"
+      }
+    ],
+    "buses": [
+      {
+        "id": 1,
+        "bus_number": "DEMO-BUS-101",
+        "capacity": 40,
+        "status": "ACTIVE",
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      },
+      {
+        "id": 2,
+        "bus_number": "DEMO-BUS-202",
+        "capacity": 32,
+        "status": "ACTIVE",
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      }
+    ],
+    "drivers": [
+      {
+        "id": 1,
+        "status": "ACTIVE",
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      },
+      {
+        "id": 2,
+        "status": "ACTIVE",
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      }
+    ],
+    "routes": [
+      {
+        "id": 1,
+        "route_name": "Demo North Loop",
+        "origin": "Demo North Terminal",
+        "destination": "Demo Campus",
+        "status": "ACTIVE",
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      },
+      {
+        "id": 2,
+        "route_name": "Demo Riverside Loop",
+        "origin": "Demo Riverside Terminal",
+        "destination": "Demo Campus",
+        "status": "ACTIVE",
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      }
+    ],
+    "route_stops": [],
+    "schedules": [
+      {
+        "id": 1,
+        "route_id": 1,
+        "bus_id": 1,
+        "driver_id": 1,
+        "service_date": "2030-01-15",
+        "departure_time": "08:00",
+        "arrival_time": "09:00",
+        "trip_type": "REGULAR",
+        "status": "ACTIVE",
+        "notes": "Fictional Phase 2 demonstration schedule.",
+        "created_by": null,
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      },
+      {
+        "id": 2,
+        "route_id": 2,
+        "bus_id": 2,
+        "driver_id": 2,
+        "service_date": "2030-01-15",
+        "departure_time": "09:30",
+        "arrival_time": "10:30",
+        "trip_type": "REGULAR",
+        "status": "ACTIVE",
+        "notes": "Fictional Phase 2 demonstration schedule.",
+        "created_by": null,
+        "created_at": "2026-08-05 10:56:58",
+        "updated_at": "2026-08-05 10:56:58"
+      }
+    ],
+    "audit_logs": []
+  }
+}
