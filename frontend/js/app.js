@@ -48,6 +48,7 @@
     byId('workspace-view').hidden = false;
     byId('logout-button').hidden = false;
     byId('admin-nav').hidden = !admin;
+    byId('user-nav').hidden = admin;
     byId('schedule-admin').hidden = !admin;
     byId('account-summary').textContent = `${state.user.full_name} · ${state.user.role}`;
     showWorkspaceMessage('');
@@ -171,7 +172,7 @@
     catch(error){showWorkspaceMessage(error.message,true);}
   }
 
-  function showAdminView(view){state.currentView=view;document.querySelectorAll('.management-view').forEach((section)=>{section.hidden=section.id!==`${view}-view`;});document.querySelectorAll('.nav-button').forEach((button)=>button.classList.toggle('is-active',button.dataset.view===view));if(view==='schedules')loadSchedules();const resourceType={buses:'bus',drivers:'driver',routes:'route'}[view];if(resourceType)loadCatalogResource(resourceType);if(view==='audit')loadAudit();}
+  function showAdminView(view){state.currentView=view;document.querySelectorAll('.management-view').forEach((section)=>{section.hidden=section.id!==`${view}-view`;});document.querySelectorAll('.nav-button').forEach((button)=>button.classList.toggle('is-active',button.dataset.view===view));if(view==='schedules')loadSchedules();const resourceType={buses:'bus',drivers:'driver',routes:'route'}[view];if(resourceType)loadCatalogResource(resourceType);if(view==='audit')loadAudit();window.diuPhase4?.load(view);}
 
   async function loadAudit(){byId('audit-loading').hidden=false;byId('audit-empty').hidden=true;setMessage(byId('audit-message'));const params=new URLSearchParams();for(const [id,key] of [['audit-action','action'],['audit-entity','entity'],['audit-outcome','outcome'],['audit-actor','actor'],['audit-start','start'],['audit-end','end']]){if(byId(id).value)params.set(key,byId(id).value);}params.set('limit','50');
     try{const payload=await api(`/api/audit-logs?${params}`);const body=byId('audit-body');body.replaceChildren();byId('audit-empty').hidden=payload.data.length>0;for(const item of payload.data){const row=document.createElement('tr');row.innerHTML=`<td>${escapeHtml(item.created_at)}</td><td>${escapeHtml(item.action)}</td><td>${escapeHtml(item.entity_type)}${item.entity_id?` #${item.entity_id}`:''}</td><td>${escapeHtml(item.actor_name||'System')}</td><td><span class="status-text ${item.outcome}">${escapeHtml(item.outcome)}</span></td><td><code>${escapeHtml(item.request_id)}</code></td>`;body.append(row);}}
@@ -179,11 +180,13 @@
 
   byId('login-tab').addEventListener('click',()=>switchAuthTab('login'));byId('register-tab').addEventListener('click',()=>switchAuthTab('register'));byId('logout-button').addEventListener('click',()=>clearSession('You have been logged out.'));byId('cancel-edit-button').addEventListener('click',resetScheduleForm);
   byId('refresh-button').addEventListener('click',()=>showAdminView(state.currentView));byId('admin-nav').addEventListener('click',(event)=>{const button=event.target.closest('[data-view]');if(button)showAdminView(button.dataset.view);});
+  byId('user-nav').addEventListener('click',(event)=>{const button=event.target.closest('[data-view]');if(button)showAdminView(button.dataset.view);});
   byId('login-panel').addEventListener('submit',async(event)=>{event.preventDefault();const form=event.currentTarget;setMessage(byId('login-message'),'Signing in…');try{const payload=await api('/api/auth/login',{method:'POST',body:JSON.stringify({email:byId('login-email').value,password:byId('login-password').value})});form.reset();await establishSession(payload);}catch(error){setMessage(byId('login-message'),error.message);}});
   byId('register-panel').addEventListener('submit',async(event)=>{event.preventDefault();const form=event.currentTarget;setMessage(byId('register-message'),'Creating account…');try{const payload=await api('/api/auth/register',{method:'POST',body:JSON.stringify({full_name:byId('register-name').value,email:byId('register-email').value,role:byId('register-role').value,password:byId('register-password').value})});form.reset();await establishSession(payload);}catch(error){setMessage(byId('register-message'),error.message);}});
   byId('schedule-form').addEventListener('submit',async(event)=>{event.preventDefault();const id=byId('schedule-id').value;setMessage(byId('schedule-form-message'),id?'Saving changes…':'Creating schedule…');try{await api(id?`/api/schedules/${id}`:'/api/schedules',{method:id?'PATCH':'POST',body:JSON.stringify(schedulePayload())});resetScheduleForm();showWorkspaceMessage(id?'Schedule updated.':'Schedule created.');await loadSchedules();}catch(error){setMessage(byId('schedule-form-message'),error.message);}});
   byId('schedule-list').addEventListener('click',async(event)=>{const button=event.target.closest('button[data-action]');if(!button)return;const id=Number(button.dataset.id);if(button.dataset.action==='edit-schedule')return editSchedule(id);if(button.dataset.action==='cancel-schedule'&&window.confirm('Cancel this schedule? The record will remain available to administrators.')){try{await api(`/api/schedules/${id}`,{method:'DELETE'});showWorkspaceMessage('Schedule cancelled.');await loadSchedules();}catch(error){showWorkspaceMessage(error.message,true);}}});
   for(const type of ['bus','driver','route']){byId(`${type}-form`).addEventListener('submit',(event)=>{event.preventDefault();submitCatalog(type);});byId(`${type}-cancel`).addEventListener('click',()=>resetCatalogForm(type));byId(`${type}-body`).addEventListener('click',(event)=>{const button=event.target.closest('button[data-catalog]');if(!button)return;const id=Number(button.dataset.id);if(button.dataset.action==='edit')editCatalog(type,id);else changeCatalogStatus(type,id,button.dataset.action);});}
   byId('audit-filter-form').addEventListener('submit',(event)=>{event.preventDefault();loadAudit();});
+  window.diuApp={api,getUser:()=>state.user,getCatalog:()=>state.activeCatalog,escapeHtml,showWorkspaceMessage,showView:showAdminView};
   loadHealth();
 })();

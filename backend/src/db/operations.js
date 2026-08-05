@@ -5,7 +5,11 @@ const { randomUUID } = require('node:crypto');
 const Database = require('better-sqlite3');
 const { MIGRATION_VERSION } = require('./connection');
 
-const REQUIRED_TABLES = ['audit_logs', 'buses', 'drivers', 'route_stops', 'routes', 'schedules', 'schema_migrations', 'users'];
+const REQUIRED_TABLES = [
+  'audit_logs', 'buses', 'drivers', 'employees', 'emergency_contacts', 'feedback',
+  'notification_reads', 'notifications', 'route_stops', 'routes', 'schedules',
+  'schema_migrations', 'special_trips', 'users',
+];
 
 function timestampedName(prefix, extension) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -86,14 +90,27 @@ function createSanitizedExport(sourcePath, exportDirectory) {
       route_stops: db.prepare('SELECT id, route_id, stop_name, stop_order, created_at, updated_at FROM route_stops ORDER BY route_id, stop_order').all(),
       schedules: db.prepare('SELECT id, route_id, bus_id, driver_id, service_date, departure_time, arrival_time, trip_type, status, notes, created_by, created_at, updated_at FROM schedules ORDER BY id').all(),
       audit_logs: db.prepare('SELECT id, actor_user_id, action, entity_type, entity_id, outcome, request_id, metadata_json, created_at FROM audit_logs ORDER BY id').all(),
+      employees: db.prepare('SELECT id, employee_code, employee_role, shift, status, created_at, updated_at FROM employees ORDER BY id').all(),
+      special_trips: db.prepare('SELECT id, schedule_id, category, approval_status, requested_by, approved_by, approved_at, created_at, updated_at FROM special_trips ORDER BY id').all(),
+      notifications: db.prepare('SELECT id, notification_type, audience_role, related_entity_type, related_entity_id, status, publish_at, expires_at, created_by, dedupe_key, created_at, updated_at FROM notifications ORDER BY id').all(),
+      notification_reads: db.prepare('SELECT notification_id, user_id, read_at FROM notification_reads ORDER BY notification_id, user_id').all(),
+      emergency_contacts: db.prepare('SELECT id, contact_role, availability, display_order, status, created_at, updated_at FROM emergency_contacts ORDER BY id').all(),
+      feedback: db.prepare('SELECT id, submitted_by, category, status, assigned_to, resolved_at, created_at, updated_at FROM feedback ORDER BY id').all(),
     };
     const payload = {
       manifest: {
-        format: 'phase3-sanitized-json-rehearsal',
+        format: 'phase4-sanitized-json-rehearsal',
         schema_version: summary.schemaVersion,
         generated_at: new Date().toISOString(),
         tables: Object.entries(data).map(([table, rows]) => ({ table, row_count: rows.length })),
-        excluded_fields: ['users.full_name', 'users.email', 'users.password_hash', 'drivers.full_name', 'drivers.phone'],
+        excluded_fields: [
+          'users.full_name', 'users.email', 'users.password_hash', 'drivers.full_name', 'drivers.phone',
+          'employees.full_name', 'employees.phone', 'employees.email', 'employees.notes',
+          'special_trips.title', 'special_trips.description', 'special_trips.organizer',
+          'notifications.title', 'notifications.message',
+          'emergency_contacts.contact_name', 'emergency_contacts.phone', 'emergency_contacts.email',
+          'feedback.subject', 'feedback.message', 'feedback.admin_response',
+        ],
         warning: 'Sanitized rehearsal only; not a PostgreSQL import artifact.',
       },
       data,

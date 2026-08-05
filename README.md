@@ -1,28 +1,28 @@
 # DIU Transport Schedule System
 
-Phase 3 keeps the Node.js/Express web application as the canonical implementation and adds administrator catalog management, redacted audit logging, API security controls, safe SQLite operational rehearsals, and browser/accessibility automation. The Java 17 Swing application remains unchanged legacy/reference code and must not use the web database.
+Phase 4 keeps the Node.js/Express web application as the canonical implementation and adds transport-operations and support workflows to the verified Phase 3 security baseline. The Java 17 Swing application remains unchanged legacy/reference code and must not use the web database.
 
 SQLite is suitable for this controlled development baseline only. This phase does not deploy the application or claim production readiness.
 
 ## Capabilities
 
 - Public registration for `STUDENT` and `TEACHER` only; administrators are provisioned explicitly.
-- bcrypt password hashes, expiring JWT authentication, fail-closed identity checks, and backend role authorization.
-- Authenticated schedule viewing and admin-only schedule create/update/soft-cancel with assignment and overlap checks.
-- Admin bus, driver, and route create/read/update/safe-deactivate/reactivate workflows.
-- Active-only catalog data for non-admin schedule use; sensitive driver fields are admin-only.
-- Ordered route stops with transactional replacement.
-- Admin-only, filtered, paginated, newest-first redacted audit history.
-- Request IDs, explicit single-origin CORS, Helmet headers, 100 KiB JSON limit, and configurable auth/general API rate limits.
-- Timestamped online SQLite backup, temporary-copy restore verification, and sanitized JSON export rehearsal.
-- Isolated Node integration tests plus Chromium workflow and axe accessibility checks.
+- bcrypt password hashes, expiring JWT authentication, fail-closed identity checks, backend role authorization, request IDs, explicit CORS, Helmet headers, body limits, and configurable rate limits.
+- Authenticated schedule viewing and admin-only schedule create/update/soft-cancel with active assignment and overlap checks.
+- Admin bus, driver, and route CRUD/safe-deactivation workflows, ordered route stops, redacted audits, SQLite backup verification, and sanitized export rehearsal.
+- Admin employee create/update/deactivate/reactivate with normalized unique codes, validated roles/shifts, and redacted audits.
+- Special trips for `EXAM`, `CLUB_EVENT`, `INDUSTRIAL_VISIT`, and `OTHER`, with draft, approval, cancellation, and completion states. Approval reuses schedule assignment and conflict rules.
+- Manual administrator notifications and automatic schedule/special-trip notifications with role audiences, lifecycle visibility, deduplication, and per-user read state.
+- Admin-managed emergency contacts with authenticated active-contact viewing.
+- Authenticated feedback submission, owner-only history, administrator filtering/assignment/response/resolution, content validation, and a dedicated rate limit.
+- Plain HTML/CSS/JavaScript interfaces and isolated API, Chromium workflow, and axe accessibility tests.
 
-Employee accounts, cards, billing, notifications, lost-and-found, GPS/maps, recurrence, password reset, production identity, observability, deployment, and PostgreSQL migration remain out of scope.
+Transport cards, billing/payment, lost-and-found, live GPS/maps, email/SMS delivery, recurrence, password reset, production identity, deployment, React migration, and PostgreSQL migration remain out of scope.
 
 ## Prerequisites and installation
 
-- Node.js 20 through 24 (verified with Node.js 24.18.0)
-- npm 10 or 11 (verified with npm 11.16.0)
+- Node.js 20 through 24
+- npm 10 or 11
 - Java 17 only when inspecting the legacy desktop source
 
 ```powershell
@@ -30,7 +30,9 @@ npm install
 Copy-Item .env.example .env
 ```
 
-Set `AUTH_SECRET` in the local `.env` to an unpredictable value of at least 32 characters. Never commit `.env`, real credentials, or personal data. `CLIENT_ORIGIN` must exactly match the browser origin. Keep `WEB_DATABASE_PATH` separate from the legacy Java `diu_transport.db`.
+Set `AUTH_SECRET` in local `.env` to an unpredictable value of at least 32 characters. Never commit `.env`, credentials, or personal data. `CLIENT_ORIGIN` must exactly match the browser origin. Keep `WEB_DATABASE_PATH` separate from the legacy Java `diu_transport.db`.
+
+The Phase 4 page-size variables and feedback limiter are documented in `.env.example`. Rate limits are per-process development controls, not a distributed production defense.
 
 ## Initialize fictional development data
 
@@ -39,7 +41,7 @@ npm run db:init
 npm run db:seed
 ```
 
-Initialization applies numbered migrations in order and refuses an unknown schema. The idempotent seed contains fictional catalog and schedule data only; it neither deletes rows nor creates an administrator.
+Initialization applies numbered migrations in order and refuses an unknown schema. The idempotent seed contains fictional baseline catalog and schedule data only; it neither deletes rows nor creates an administrator. Migration tests cover both fresh initialization and non-destructive Phase 3-to-Phase 4 upgrade.
 
 ## Provision the one administrator
 
@@ -59,16 +61,20 @@ The password must have at least 12 characters with uppercase, lowercase, number,
 npm start
 ```
 
-Open `http://localhost:5000`. The Express process serves both the frontend and API.
+Open `http://localhost:5000`. Express serves both the frontend and API. `npm run dev` uses Node watch mode for local development only.
 
-- `GET /api/health` — safe service/database status
-- `/api/auth/*` — registration, login, and current user
-- `/api/schedules/*` — authenticated schedule management
-- `/api/catalog` — active schedule-form choices
-- `/api/buses`, `/api/drivers`, `/api/routes` — active reads or admin management
-- `/api/audit-logs` — admin-only filtered audit history
+- `GET /api/health` - safe service/database status
+- `/api/auth/*` - registration, login, and current user
+- `/api/schedules/*` - authenticated schedule viewing and administrator management
+- `/api/catalog`, `/api/buses`, `/api/drivers`, `/api/routes` - active choices and administrator catalog management
+- `/api/employees` - active minimum-data reads and administrator employee management
+- `/api/special-trips` - approved-trip reads and administrator lifecycle management
+- `/api/notifications` - visible notification/read state and administrator publishing
+- `/api/contacts` - active emergency contacts and administrator management
+- `/api/feedback`, `/api/admin/feedback` - owner submission/history and administrator review
+- `/api/audit-logs` - administrator-only filtered audit history
 
-`npm run dev` uses Node's watch mode and is intended only for local development.
+Notifications are in-app records only; this repository does not send email or SMS.
 
 ## Verification
 
@@ -76,14 +82,15 @@ Open `http://localhost:5000`. The Express process serves both the frontend and A
 npm run check
 npm run test:phase2
 npm run test:phase3
+npm run test:phase4
 npm test
 npm run test:browser
 npm audit --audit-level=low
 ```
 
-The final Phase 3 run passed 50 syntax checks, all 25 preserved Phase 2 tests, all 21 Phase 3 API/database-operation tests, all 46 combined backend tests, and 2 Chromium browser tests. The browser suite includes automated axe checks and found no serious or critical violations on the tested login and admin-workspace states. Firefox, WebKit, screen-reader, full keyboard-only, 200% zoom, high-contrast, and Edge/Firefox visual checks were not executed.
+Tests create isolated temporary SQLite databases with runtime-generated fictional credentials. They do not modify the tracked development database or require external services. Exact final counts, browser coverage, and accessibility results are recorded in [Phase 4 test evidence](docs/phase-4/TEST_EVIDENCE.md).
 
-Tests create isolated temporary SQLite databases and use runtime-generated fictional credentials. They do not modify the tracked development database or require external services.
+Only Chromium automation is configured. Firefox, WebKit, screen-reader, complete keyboard-only, 200% zoom, high-contrast, and cross-platform visual verification are not claimed.
 
 ## Backup, restore verification, and export rehearsal
 
@@ -93,20 +100,18 @@ npm run db:backup:verify
 npm run db:export
 ```
 
-Backups and exports are timestamped in ignored directories. Backup uses SQLite's online backup operation and verifies source and destination integrity. Restore verification copies the selected backup to a unique temporary database, enables foreign keys, checks integrity/schema/required tables and safe counts, then deletes only that copy. Export produces sanitized JSON plus a manifest and excludes user names, email addresses, password hashes, and driver names/phones. These commands do not perform a PostgreSQL import.
+Backups and exports are timestamped in ignored directories. Backup uses SQLite's online backup operation. Restore verification uses a unique temporary copy, checks integrity/schema/required tables and safe counts, then deletes only that copy. Export creates sanitized JSON and excludes credential, identity/contact, and operational free-text fields from users, drivers, employees, special trips, notifications, contacts, and feedback. These commands do not perform a PostgreSQL import.
 
 ## Security notes
 
-- The server—not hidden frontend controls—enforces every role boundary.
+- The server, not hidden frontend controls, enforces every role boundary.
 - Public role input cannot create `ADMIN` or `STAFF` accounts.
 - Invalid/expired tokens, unknown or disabled users, bad passwords, and database failures fail closed.
-- JWTs contain a user identifier and standard claims; current role/status are reloaded on protected requests.
-- Tokens stay in page memory, not local storage.
-- Audit metadata is allowlisted and never receives raw request bodies, credentials, tokens, cookies, authorization headers, hashes, raw SQL, or stack traces.
+- Tokens stay in page memory, not browser storage.
+- Audit metadata is allowlisted and never receives request bodies, credentials, tokens, cookies, authorization headers, hashes, raw SQL, feedback bodies, or contact details.
 - Request IDs are bounded safe client values or generated UUIDs and appear in controlled errors/audits.
-- Helmet defaults are enabled. No Phase 3 header is intentionally disabled; production TLS/HSTS effectiveness still depends on deployment infrastructure.
-- CORS allows only `CLIENT_ORIGIN`; credentialed wildcard CORS is not used.
-- Rate limits use an in-memory store and are per-process development controls, not a distributed production defense.
+- CORS allows only `CLIENT_ORIGIN`; no credentialed wildcard CORS is used.
+- Authentication, general API, and feedback-submission limits use in-memory stores suitable only for this single-process development baseline.
 
 ## Structure and status
 
@@ -118,6 +123,7 @@ frontend/          plain HTML, CSS, and JavaScript
 docs/phase-1/      repository audit evidence
 docs/phase-2/      secure web baseline evidence
 docs/phase-3/      catalog/security/operations/browser evidence
+docs/phase-4/      operations/support implementation and verification evidence
 src/, lib/, run.bat legacy Java 17 reference application
 ```
 
@@ -125,9 +131,9 @@ Older unmounted backend modules remain reference code and are not registered by 
 
 ## Known limitations and next direction
 
-SQLite remains single-host development storage. Audit retention/export policy, distributed rate limiting, TLS/reverse-proxy operations, secure token/session revocation, account recovery, production monitoring, database encryption/key management, comprehensive WCAG testing, and disaster-recovery restore into an operator-selected target are not implemented.
+SQLite remains single-host development storage. Audit/feedback retention policy, distributed rate limiting, TLS/reverse-proxy operations, secure token revocation, account recovery, production monitoring, database encryption/key management, external notification delivery, and comprehensive WCAG testing are not implemented.
 
-Phase 4 should focus on production-readiness decisions and a separately approved PostgreSQL migration pilot—not a deployment by default. See [the Phase 3 completion report](docs/phase-3/PHASE_3_COMPLETION_REPORT.md) and [Phase 4 recommendation](docs/phase-3/PHASE_4_RECOMMENDATION.md).
+Phase 5 should first define production-readiness and data-governance decisions: identity/account lifecycle, notification delivery architecture, retention and incident procedures, observability, and a separately approved PostgreSQL migration rehearsal. It should not combine those decisions with deployment or payment work by default. See [the Phase 4 completion report](docs/phase-4/PHASE_4_COMPLETION_REPORT.md) and [Phase 5 recommendation](docs/phase-4/PHASE_5_RECOMMENDATION.md).
 
 ## License
 

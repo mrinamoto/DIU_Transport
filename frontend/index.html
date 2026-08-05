@@ -7,6 +7,7 @@
   <title>DIU Transport Schedule</title>
   <link rel="stylesheet" href="/css/styles.css">
   <script src="/js/app.js" defer></script>
+  <script src="/js/phase4.js" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -79,6 +80,18 @@
         <button class="nav-button" data-view="drivers" type="button">Drivers</button>
         <button class="nav-button" data-view="routes" type="button">Routes</button>
         <button class="nav-button" data-view="audit" type="button">Audit log</button>
+        <button class="nav-button" data-view="employees" type="button">Employees</button>
+        <button class="nav-button" data-view="special-trips" type="button">Special trips</button>
+        <button class="nav-button" data-view="notifications" type="button">Notifications</button>
+        <button class="nav-button" data-view="contacts" type="button">Emergency contacts</button>
+        <button class="nav-button" data-view="feedback" type="button">Feedback</button>
+      </nav>
+      <nav id="user-nav" class="admin-nav" aria-label="Transport support workspace" hidden>
+        <button class="nav-button is-active" data-view="schedules" type="button">Schedules</button>
+        <button class="nav-button" data-view="special-trips" type="button">Special trips</button>
+        <button class="nav-button" data-view="notifications" type="button">Notifications</button>
+        <button class="nav-button" data-view="contacts" type="button">Emergency contacts</button>
+        <button class="nav-button" data-view="feedback" type="button">My feedback</button>
       </nav>
 
       <section id="schedules-view" class="management-view" aria-labelledby="schedule-list-title">
@@ -158,6 +171,44 @@
         </form>
         <p id="audit-message" class="form-message" role="alert"></p><div id="audit-loading" class="loading-state" role="status">Loading audit records…</div><div id="audit-empty" class="empty-state" hidden>No audit records match.</div>
         <div class="table-wrap"><table><caption class="sr-only">Administrator audit log</caption><thead><tr><th scope="col">Time</th><th scope="col">Action</th><th scope="col">Entity</th><th scope="col">Actor</th><th scope="col">Outcome</th><th scope="col">Request ID</th></tr></thead><tbody id="audit-body"></tbody></table></div>
+      </section>
+
+      <section id="employees-view" class="management-view" aria-labelledby="employees-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Operations team</p><h2 id="employees-title">Employees</h2></div></div>
+        <form id="employee-form" class="admin-panel compact-form">
+          <input id="employee-id" type="hidden"><label for="employee-code">Employee code</label><input id="employee-code" maxlength="30" required>
+          <label for="employee-name">Full name</label><input id="employee-name" maxlength="100" required><label for="employee-role">Role</label><select id="employee-role"><option>TRANSPORT_OFFICER</option><option>HELPER</option><option>MAINTENANCE</option><option>OTHER</option></select>
+          <label for="employee-phone">Phone</label><input id="employee-phone" maxlength="25" required><label for="employee-email">Email</label><input id="employee-email" type="email"><label for="employee-shift">Shift</label><select id="employee-shift"><option>MORNING</option><option>EVENING</option><option>NIGHT</option><option>FLEXIBLE</option></select>
+          <label for="employee-notes">Notes</label><textarea id="employee-notes" maxlength="500"></textarea><div class="form-actions"><button class="button button-primary" type="submit">Save employee</button><button id="employee-cancel" class="button button-quiet" type="button" hidden>Cancel edit</button></div><p id="employee-message" class="form-message form-span" role="alert"></p>
+        </form><div id="employee-list" class="record-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="special-trips-view" class="management-view" aria-labelledby="special-trips-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Exceptional operations</p><h2 id="special-trips-title">Special trips</h2></div></div>
+        <form id="special-trip-form" class="admin-panel management-form" hidden>
+          <label for="special-category">Category</label><select id="special-category"><option>EXAM</option><option>CLUB_EVENT</option><option>INDUSTRIAL_VISIT</option><option>OTHER</option></select><label for="special-title">Title</label><input id="special-title" maxlength="150" required><label for="special-organizer">Organizer</label><input id="special-organizer" maxlength="150" required>
+          <label for="special-route">Route</label><select id="special-route" required></select><label for="special-bus">Bus</label><select id="special-bus" required></select><label for="special-driver">Driver</label><select id="special-driver" required></select>
+          <label for="special-date">Service date</label><input id="special-date" type="date" required><label for="special-departure">Departure</label><input id="special-departure" type="time" required><label for="special-arrival">Arrival</label><input id="special-arrival" type="time" required>
+          <label for="special-description">Description</label><textarea id="special-description" maxlength="1000"></textarea><div class="form-actions"><button class="button button-primary" type="submit">Create draft</button></div><p id="special-message" class="form-message form-span" role="alert"></p>
+        </form><div id="special-trip-list" class="record-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="notifications-view" class="management-view" aria-labelledby="notifications-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Service updates</p><h2 id="notifications-title">Notifications</h2></div><span id="notification-unread" class="count-badge">0 unread</span></div>
+        <form id="notification-form" class="admin-panel compact-form" hidden><label for="notification-title">Title</label><input id="notification-title" maxlength="150" required><label for="notification-type">Type</label><select id="notification-type"><option>GENERAL</option><option>SCHEDULE_UPDATE</option><option>SCHEDULE_CANCELLATION</option><option>NEW_ROUTE</option><option>SPECIAL_TRIP</option><option>EMERGENCY</option></select><label for="notification-audience">Audience</label><select id="notification-audience"><option value="">All roles</option><option>STUDENT</option><option>TEACHER</option><option>STAFF</option><option>ADMIN</option></select><label for="notification-message">Message</label><textarea id="notification-message" maxlength="1000" required></textarea><div class="form-actions"><button class="button button-primary" type="submit">Create draft</button></div><p id="notification-message-status" class="form-message form-span" role="alert"></p></form>
+        <div id="notification-list" class="record-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="contacts-view" class="management-view" aria-labelledby="contacts-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Help when needed</p><h2 id="contacts-title">Emergency contacts</h2></div></div>
+        <form id="contact-form" class="admin-panel compact-form" hidden><label for="contact-name">Contact name</label><input id="contact-name" maxlength="100" required><label for="contact-role">Role</label><select id="contact-role"><option>TRANSPORT_MANAGER</option><option>TRANSPORT_OFFICER</option><option>EMERGENCY_HOTLINE</option><option>OTHER</option></select><label for="contact-phone">Phone</label><input id="contact-phone" maxlength="25" required><label for="contact-email">Email</label><input id="contact-email" type="email"><label for="contact-availability">Availability</label><input id="contact-availability" maxlength="120" required><label for="contact-order">Display order</label><input id="contact-order" type="number" min="0" value="0"><div class="form-actions"><button class="button button-primary" type="submit">Add contact</button></div><p id="contact-message" class="form-message form-span" role="alert"></p></form>
+        <div id="contact-list" class="record-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="feedback-view" class="management-view" aria-labelledby="feedback-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Support channel</p><h2 id="feedback-title">Feedback</h2></div></div>
+        <form id="feedback-form" class="admin-panel compact-form"><label for="feedback-category">Category</label><select id="feedback-category"><option>SCHEDULE</option><option>ROUTE</option><option>BUS_SERVICE</option><option>DRIVER_BEHAVIOR</option><option>SAFETY</option><option>APPLICATION</option><option>OTHER</option></select><label for="feedback-subject">Subject</label><input id="feedback-subject" maxlength="150" required><label for="feedback-message-input">Message</label><textarea id="feedback-message-input" maxlength="2000" required></textarea><div class="form-actions"><button class="button button-primary" type="submit">Submit feedback</button></div><p id="feedback-message" class="form-message form-span" role="alert"></p></form>
+        <div id="feedback-list" class="record-grid" aria-live="polite"></div>
       </section>
     </section>
   </main>
