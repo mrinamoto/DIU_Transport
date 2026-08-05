@@ -1,0 +1,71 @@
+CREATE TABLE schema_migrations (
+  version INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  full_name TEXT NOT NULL CHECK(length(trim(full_name)) BETWEEN 2 AND 100),
+  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('STUDENT', 'TEACHER', 'STAFF', 'ADMIN')),
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'INACTIVE')),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE buses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bus_number TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'INACTIVE', 'MAINTENANCE')),
+  capacity INTEGER NOT NULL CHECK(capacity BETWEEN 1 AND 100),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE drivers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'INACTIVE')),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE routes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  route_name TEXT NOT NULL UNIQUE,
+  origin TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'INACTIVE')),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE schedules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE RESTRICT,
+  bus_id INTEGER NOT NULL REFERENCES buses(id) ON DELETE RESTRICT,
+  driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE RESTRICT,
+  service_date TEXT NOT NULL,
+  departure_time TEXT NOT NULL,
+  arrival_time TEXT NOT NULL,
+  trip_type TEXT NOT NULL DEFAULT 'REGULAR' CHECK(trip_type IN ('REGULAR', 'SPECIAL')),
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'CANCELLED')),
+  notes TEXT,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_schedules_service_date_status
+ON schedules(service_date, status);
+
+CREATE INDEX idx_schedules_bus_date_times
+ON schedules(bus_id, service_date, departure_time, arrival_time)
+WHERE status = 'ACTIVE';
+
+CREATE INDEX idx_schedules_driver_date_times
+ON schedules(driver_id, service_date, departure_time, arrival_time)
+WHERE status = 'ACTIVE';
