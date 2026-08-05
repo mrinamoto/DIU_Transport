@@ -15,6 +15,8 @@ function collectJavaScript(directory) {
 const files = [
   ...collectJavaScript(path.join(projectRoot, 'backend')),
   ...collectJavaScript(path.join(projectRoot, 'frontend')),
+  ...collectJavaScript(path.join(projectRoot, 'browser-test')),
+  path.join(projectRoot, 'playwright.config.js'),
 ];
 
 let failures = 0;
