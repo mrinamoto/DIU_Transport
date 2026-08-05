@@ -1,22 +1,33 @@
 {
   "name": "diu-transport-system",
   "version": "1.0.0",
-  "description": "DIU Transport Schedule System - Full Stack Web Application",
-  "main": "backend/server.js",
+  "description": "DIU Transport Schedule System - secure Phase 2 web baseline",
+  "main": "backend/src/server.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "node --watch backend/server.js",
-    "seed": "node backend/seed.js"
+    "start": "node backend/src/server.js",
+    "dev": "node --watch backend/src/server.js",
+    "check": "node backend/src/scripts/check.js",
+    "test": "node --test --test-concurrency=1 backend/test/integration.test.js",
+    "db:init": "node backend/src/db/init.js",
+    "db:seed": "node backend/src/db/seed.js",
+    "admin:create": "node backend/src/scripts/createAdmin.js"
   },
   "keywords": ["diu", "transport", "schedule"],
   "author": "",
-  "license": "ISC",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=20 <25",
+    "npm": ">=10 <12"
+  },
+  "packageManager": "npm@11.16.0",
   "dependencies": {
-    "better-sqlite3": "^11.3.0",
+    "better-sqlite3": "^12.11.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2"
   }
 }
