@@ -5,6 +5,7 @@ const Database = require('better-sqlite3');
 const MIGRATIONS = [
   { version: 1, name: 'phase2_baseline', file: '001_phase2_baseline.sql' },
   { version: 2, name: 'phase3_catalog_audit', file: '002_phase3_catalog_audit.sql' },
+  { version: 3, name: 'phase4_operations_support', file: '003_phase4_operations_support.sql' },
 ];
 const MIGRATION_VERSION = MIGRATIONS.at(-1).version;
 

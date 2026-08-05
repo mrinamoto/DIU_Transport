@@ -17,6 +17,7 @@ function createRateLimits(config) {
   return {
     apiLimiter: rateLimit({ ...shared, windowMs: config.apiRateLimitWindowMs, limit: config.apiRateLimitMax }),
     authLimiter: rateLimit({ ...shared, windowMs: config.authRateLimitWindowMs, limit: config.authRateLimitMax }),
+    feedbackLimiter: rateLimit({ ...shared, windowMs: config.feedbackRateLimitWindowMs, limit: config.feedbackRateLimitMax }),
   };
 }
 

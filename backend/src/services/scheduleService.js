@@ -37,7 +37,7 @@ function mapSchedule(row) {
   };
 }
 
-function createScheduleService(db, auditService) {
+function createScheduleService(db, auditService, notificationService = null) {
   const findRoute = db.prepare('SELECT id, status FROM routes WHERE id = ?');
   const findBus = db.prepare('SELECT id, status FROM buses WHERE id = ?');
   const findDriver = db.prepare('SELECT id, status FROM drivers WHERE id = ?');
@@ -79,7 +79,11 @@ function createScheduleService(db, auditService) {
   }
 
   function list({ includeCancelled = false } = {}) {
-    const where = includeCancelled ? '' : "WHERE s.status = 'ACTIVE'";
+    const where = includeCancelled ? '' : `WHERE s.status = 'ACTIVE'
+      AND NOT EXISTS (
+        SELECT 1 FROM special_trips st
+        WHERE st.schedule_id=s.id AND st.approval_status!='APPROVED'
+      )`;
     return db.prepare(`${SCHEDULE_SELECT} ${where} ORDER BY s.service_date, s.departure_time, s.id`)
       .all().map(mapSchedule);
   }
@@ -135,6 +139,13 @@ function createScheduleService(db, auditService) {
     `).run({ ...validation.value, id });
     const result = mapSchedule(findSchedule.get(id));
     auditService.record({ actorUserId, action: 'SCHEDULE_UPDATE', entityType: 'SCHEDULE', entityId: id, outcome: 'SUCCESS', requestId: context.requestId, metadata: { changed_fields: Object.keys(payload) } });
+    if (notificationService && !context.suppressAutomaticNotification && existing.status === 'ACTIVE' && result.status === 'ACTIVE') {
+      notificationService.createAutomatic({
+        title: 'Schedule updated', message: `Schedule #${id} has an important update.`,
+        notificationType: 'SCHEDULE_UPDATE', relatedEntityType: 'SCHEDULE', relatedEntityId: id,
+        dedupeKey: `schedule:${id}:update:${context.requestId}`, createdBy: actorUserId, requestId: context.requestId,
+      });
+    }
     return result;
   });
 
@@ -144,6 +155,13 @@ function createScheduleService(db, auditService) {
     db.prepare("UPDATE schedules SET status='CANCELLED', updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
     const result = mapSchedule(findSchedule.get(id));
     auditService.record({ actorUserId, action: 'SCHEDULE_DEACTIVATE', entityType: 'SCHEDULE', entityId: id, outcome: 'SUCCESS', requestId: context.requestId, metadata: { previous_status: existing.status, new_status: 'CANCELLED' } });
+    if (notificationService && !context.suppressAutomaticNotification && existing.status !== 'CANCELLED') {
+      notificationService.createAutomatic({
+        title: 'Schedule cancelled', message: `Schedule #${id} has been cancelled.`,
+        notificationType: 'SCHEDULE_CANCELLATION', relatedEntityType: 'SCHEDULE', relatedEntityId: id,
+        dedupeKey: `schedule:${id}:cancel:${context.requestId}`, createdBy: actorUserId, requestId: context.requestId,
+      });
+    }
     return result;
   });
 

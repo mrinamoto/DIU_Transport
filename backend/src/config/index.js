@@ -79,6 +79,11 @@ function createConfig({ env = process.env, requireAuthSecret = true } = {}) {
     auditPageSizeMax: parsePositiveInteger(env.AUDIT_PAGE_SIZE_MAX, '100', 'AUDIT_PAGE_SIZE_MAX', { max: 250 }),
     backupDirectory: resolveProjectPath(env.BACKUP_DIRECTORY, 'backend/backups'),
     exportDirectory: resolveProjectPath(env.EXPORT_DIRECTORY, 'backend/exports'),
+    feedbackRateLimitWindowMs: parsePositiveInteger(env.FEEDBACK_RATE_LIMIT_WINDOW_MS, '600000', 'FEEDBACK_RATE_LIMIT_WINDOW_MS'),
+    feedbackRateLimitMax: parsePositiveInteger(env.FEEDBACK_RATE_LIMIT_MAX, '10', 'FEEDBACK_RATE_LIMIT_MAX'),
+    notificationPageSizeMax: parsePositiveInteger(env.NOTIFICATION_PAGE_SIZE_MAX, '100', 'NOTIFICATION_PAGE_SIZE_MAX', { max: 250 }),
+    feedbackPageSizeMax: parsePositiveInteger(env.FEEDBACK_PAGE_SIZE_MAX, '100', 'FEEDBACK_PAGE_SIZE_MAX', { max: 250 }),
+    specialTripPageSizeMax: parsePositiveInteger(env.SPECIAL_TRIP_PAGE_SIZE_MAX, '100', 'SPECIAL_TRIP_PAGE_SIZE_MAX', { max: 250 }),
   });
 }
 

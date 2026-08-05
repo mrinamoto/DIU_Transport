@@ -1,15 +1,16 @@
 {
   "name": "diu-transport-system",
   "version": "1.0.0",
-  "description": "DIU Transport Schedule System - Phase 3 catalog and security baseline",
+  "description": "DIU Transport Schedule System - Phase 4 operations and support baseline",
   "main": "backend/src/server.js",
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
     "check": "node backend/src/scripts/check.js",
-    "test": "node --test --test-concurrency=1 backend/test/integration.test.js backend/test/phase3.test.js backend/test/database-operations.test.js",
+    "test": "node --test --test-concurrency=1 backend/test/integration.test.js backend/test/phase3.test.js backend/test/database-operations.test.js backend/test/phase4.test.js",
     "test:phase2": "node --test --test-concurrency=1 backend/test/integration.test.js",
     "test:phase3": "node --test --test-concurrency=1 backend/test/phase3.test.js backend/test/database-operations.test.js",
+    "test:phase4": "node --test --test-concurrency=1 backend/test/phase4.test.js",
     "test:browser": "playwright test",
     "db:init": "node backend/src/db/init.js",
     "db:seed": "node backend/src/db/seed.js",

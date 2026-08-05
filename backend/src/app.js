@@ -16,15 +16,30 @@ const { createCatalogResourceRouter } = require('./routes/catalogResources');
 const { createAuditRouter } = require('./routes/audit');
 const { requestId } = require('./middleware/requestId');
 const { createRateLimits } = require('./middleware/rateLimits');
+const { createEmployeeService } = require('./services/employeeService');
+const { createNotificationService } = require('./services/notificationService');
+const { createSpecialTripService } = require('./services/specialTripService');
+const { createContactService } = require('./services/contactService');
+const { createFeedbackService } = require('./services/feedbackService');
+const { createEmployeeRouter } = require('./routes/employees');
+const { createNotificationRouter } = require('./routes/notifications');
+const { createSpecialTripRouter } = require('./routes/specialTrips');
+const { createContactRouter } = require('./routes/contacts');
+const { createFeedbackRouter, createAdminFeedbackRouter } = require('./routes/feedback');
 
 function createApp({ db, config }) {
   const app = express();
   const frontendDirectory = path.join(config.projectRoot, 'frontend');
   const auditService = createAuditService(db);
   const authenticate = createAuthenticate({ db, config });
-  const scheduleService = createScheduleService(db, auditService);
+  const notificationService = createNotificationService(db, auditService, { pageSizeMax: config.notificationPageSizeMax });
+  const scheduleService = createScheduleService(db, auditService, notificationService);
   const catalogService = createCatalogService(db, auditService);
-  const { apiLimiter, authLimiter } = createRateLimits(config);
+  const employeeService = createEmployeeService(db, auditService);
+  const contactService = createContactService(db, auditService);
+  const feedbackService = createFeedbackService(db, auditService, { pageSizeMax: config.feedbackPageSizeMax });
+  const specialTripService = createSpecialTripService(db, auditService, scheduleService, notificationService, { pageSizeMax: config.specialTripPageSizeMax });
+  const { apiLimiter, authLimiter, feedbackLimiter } = createRateLimits(config);
 
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
@@ -51,6 +66,12 @@ function createApp({ db, config }) {
     app.use(`/api/${type}`, createCatalogResourceRouter({ type, authenticate, catalogService }));
   }
   app.use('/api/audit-logs', createAuditRouter({ db, authenticate, pageSizeMax: config.auditPageSizeMax }));
+  app.use('/api/employees', createEmployeeRouter({ authenticate, employeeService }));
+  app.use('/api/special-trips', createSpecialTripRouter({ authenticate, specialTripService }));
+  app.use('/api/notifications', createNotificationRouter({ authenticate, notificationService }));
+  app.use('/api/contacts', createContactRouter({ authenticate, contactService }));
+  app.use('/api/feedback', createFeedbackRouter({ authenticate, feedbackService, feedbackLimiter }));
+  app.use('/api/admin/feedback', createAdminFeedbackRouter({ authenticate, feedbackService }));
   app.use('/api', notFound);
 
   app.use(express.static(frontendDirectory));
