@@ -32,6 +32,28 @@ function resolveDatabasePath(value) {
   return path.isAbsolute(configured) ? configured : path.resolve(projectRoot, configured);
 }
 
+function parsePositiveInteger(value, fallback, name, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const parsed = Number.parseInt(value ?? fallback, 10);
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+    throw new Error(`${name} must be an integer between ${min} and ${max}.`);
+  }
+  return parsed;
+}
+
+function parseTrustProxy(value) {
+  const normalized = String(value ?? 'false').trim().toLowerCase();
+  if (normalized === 'false') return false;
+  if (normalized === 'true') return true;
+  const hops = Number.parseInt(normalized, 10);
+  if (Number.isInteger(hops) && hops >= 0 && hops <= 10) return hops;
+  throw new Error('TRUST_PROXY must be false, true, or a hop count from 0 to 10.');
+}
+
+function resolveProjectPath(value, fallback) {
+  const configured = value || fallback;
+  return path.isAbsolute(configured) ? configured : path.resolve(projectRoot, configured);
+}
+
 function createConfig({ env = process.env, requireAuthSecret = true } = {}) {
   const authSecret = env.AUTH_SECRET || '';
   if (requireAuthSecret && authSecret.length < 32) {
@@ -49,6 +71,14 @@ function createConfig({ env = process.env, requireAuthSecret = true } = {}) {
     authIssuer: 'diu-transport-web',
     authAudience: 'diu-transport-frontend',
     publicRegistrationRoles: parsePublicRoles(env.PUBLIC_REGISTRATION_ROLES),
+    authRateLimitWindowMs: parsePositiveInteger(env.AUTH_RATE_LIMIT_WINDOW_MS, '900000', 'AUTH_RATE_LIMIT_WINDOW_MS'),
+    authRateLimitMax: parsePositiveInteger(env.AUTH_RATE_LIMIT_MAX, '20', 'AUTH_RATE_LIMIT_MAX'),
+    apiRateLimitWindowMs: parsePositiveInteger(env.API_RATE_LIMIT_WINDOW_MS, '60000', 'API_RATE_LIMIT_WINDOW_MS'),
+    apiRateLimitMax: parsePositiveInteger(env.API_RATE_LIMIT_MAX, '300', 'API_RATE_LIMIT_MAX'),
+    trustProxy: parseTrustProxy(env.TRUST_PROXY),
+    auditPageSizeMax: parsePositiveInteger(env.AUDIT_PAGE_SIZE_MAX, '100', 'AUDIT_PAGE_SIZE_MAX', { max: 250 }),
+    backupDirectory: resolveProjectPath(env.BACKUP_DIRECTORY, 'backend/backups'),
+    exportDirectory: resolveProjectPath(env.EXPORT_DIRECTORY, 'backend/exports'),
   });
 }
 

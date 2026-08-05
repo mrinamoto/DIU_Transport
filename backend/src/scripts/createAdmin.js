@@ -3,6 +3,8 @@ const { createConfig } = require('../config');
 const { openDatabase } = require('../db/connection');
 const { normalizeEmail, isValidEmail, validatePassword } = require('../utils/validation');
 const { BCRYPT_ROUNDS } = require('../routes/auth');
+const { createAuditService } = require('../services/auditService');
+const { randomUUID } = require('node:crypto');
 
 function createAdministrator(db, { fullName, email, password }) {
   const normalizedEmail = normalizeEmail(email);
@@ -25,6 +27,16 @@ function createAdministrator(db, { fullName, email, password }) {
     INSERT INTO users (full_name, email, password_hash, role)
     VALUES (?, ?, ?, 'ADMIN')
   `).run(normalizedName, normalizedEmail, passwordHash);
+  const administrator = db.prepare("SELECT id FROM users WHERE email=? AND role='ADMIN'").get(normalizedEmail);
+  createAuditService(db).record({
+    actorUserId: administrator.id,
+    action: 'ADMIN_PROVISION',
+    entityType: 'USER',
+    entityId: administrator.id,
+    outcome: 'SUCCESS',
+    requestId: `provision-${randomUUID()}`,
+    metadata: { source: 'admin_create_command' },
+  });
 }
 
 function main() {

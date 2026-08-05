@@ -1,5 +1,5 @@
 const { AppError } = require('../middleware/errors');
-const { validateScheduleInput } = require('../utils/validation');
+const { validateScheduleInput, validateScheduleFields } = require('../utils/validation');
 
 const SCHEDULE_SELECT = `
   SELECT s.id, s.route_id, s.bus_id, s.driver_id, s.service_date,
@@ -37,7 +37,7 @@ function mapSchedule(row) {
   };
 }
 
-function createScheduleService(db) {
+function createScheduleService(db, auditService) {
   const findRoute = db.prepare('SELECT id, status FROM routes WHERE id = ?');
   const findBus = db.prepare('SELECT id, status FROM buses WHERE id = ?');
   const findDriver = db.prepare('SELECT id, status FROM drivers WHERE id = ?');
@@ -92,7 +92,7 @@ function createScheduleService(db) {
     return mapSchedule(row);
   }
 
-  const createTransaction = db.transaction((payload, createdBy) => {
+  const createTransaction = db.transaction((payload, createdBy, context) => {
     const validation = validateScheduleInput(payload);
     if (!validation.valid) throw new AppError(400, validation.errors[0], validation.errors);
     ensureAssignments(validation.value);
@@ -107,13 +107,14 @@ function createScheduleService(db) {
         @trip_type, @status, @notes, @created_by
       )
     `).run({ ...value, created_by: createdBy });
-    return mapSchedule(findSchedule.get(info.lastInsertRowid));
+    const result = mapSchedule(findSchedule.get(info.lastInsertRowid));
+    auditService.record({ actorUserId: createdBy, action: 'SCHEDULE_CREATE', entityType: 'SCHEDULE', entityId: result.id, outcome: 'SUCCESS', requestId: context.requestId, metadata: { changed_fields: Object.keys(validation.value) } });
+    return result;
   });
 
-  const updateTransaction = db.transaction((id, payload) => {
-    if (Object.prototype.hasOwnProperty.call(payload, 'id')) {
-      throw new AppError(400, 'Schedule IDs are assigned by the server.');
-    }
+  const updateTransaction = db.transaction((id, payload, actorUserId, context) => {
+    const fieldErrors = validateScheduleFields(payload);
+    if (fieldErrors.length) throw new AppError(400, fieldErrors[0], fieldErrors);
 
     const existing = findRawSchedule.get(id);
     if (!existing) throw new AppError(404, 'Schedule not found.');
@@ -121,7 +122,7 @@ function createScheduleService(db) {
     delete merged.id;
     if (!Object.prototype.hasOwnProperty.call(payload, 'trip_type')) merged.trip_type = existing.trip_type;
     if (!Object.prototype.hasOwnProperty.call(payload, 'status')) merged.status = existing.status;
-    const validation = validateScheduleInput(merged);
+    const validation = validateScheduleInput(merged, { checkFields: false });
     if (!validation.valid) throw new AppError(400, validation.errors[0], validation.errors);
     ensureAssignments(validation.value);
     ensureNoConflict(validation.value, id);
@@ -132,21 +133,40 @@ function createScheduleService(db) {
         trip_type=@trip_type, status=@status, notes=@notes, updated_at=CURRENT_TIMESTAMP
       WHERE id=@id
     `).run({ ...validation.value, id });
-    return mapSchedule(findSchedule.get(id));
+    const result = mapSchedule(findSchedule.get(id));
+    auditService.record({ actorUserId, action: 'SCHEDULE_UPDATE', entityType: 'SCHEDULE', entityId: id, outcome: 'SUCCESS', requestId: context.requestId, metadata: { changed_fields: Object.keys(payload) } });
+    return result;
   });
 
-  const deactivateTransaction = db.transaction((id) => {
+  const deactivateTransaction = db.transaction((id, actorUserId, context) => {
     const existing = findRawSchedule.get(id);
     if (!existing) throw new AppError(404, 'Schedule not found.');
     db.prepare("UPDATE schedules SET status='CANCELLED', updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
-    return mapSchedule(findSchedule.get(id));
+    const result = mapSchedule(findSchedule.get(id));
+    auditService.record({ actorUserId, action: 'SCHEDULE_DEACTIVATE', entityType: 'SCHEDULE', entityId: id, outcome: 'SUCCESS', requestId: context.requestId, metadata: { previous_status: existing.status, new_status: 'CANCELLED' } });
+    return result;
   });
+
+  function withConflictAudit(operation, { actorUserId, requestId, action, entityId = null }) {
+    try { return operation(); } catch (error) {
+      if (error.statusCode === 409) {
+        auditService.record({ actorUserId, action, entityType: 'SCHEDULE', entityId, outcome: 'CONFLICT', requestId, metadata: { conflict_type: /bus/i.test(error.message) ? 'bus_overlap' : 'driver_overlap' } });
+      }
+      throw error;
+    }
+  }
 
   return {
     list,
     getById,
-    create: createTransaction,
-    update: updateTransaction,
+    create: (payload, actorUserId, context) => withConflictAudit(
+      () => createTransaction(payload, actorUserId, context),
+      { actorUserId, requestId: context.requestId, action: 'SCHEDULE_CREATE' },
+    ),
+    update: (id, payload, actorUserId, context) => withConflictAudit(
+      () => updateTransaction(id, payload, actorUserId, context),
+      { actorUserId, requestId: context.requestId, action: 'SCHEDULE_UPDATE', entityId: id },
+    ),
     deactivate: deactivateTransaction,
   };
 }

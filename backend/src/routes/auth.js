@@ -33,7 +33,7 @@ function signToken(user, config) {
   });
 }
 
-function createAuthRouter({ db, config, authenticate }) {
+function createAuthRouter({ db, config, authenticate, auditService }) {
   const router = express.Router();
 
   router.post('/register', async (req, res, next) => {
@@ -53,7 +53,10 @@ function createAuthRouter({ db, config, authenticate }) {
         errors.push(`Public registration allows only: ${config.publicRegistrationRoles.join(', ')}.`);
       }
       errors.push(...passwordErrors);
-      if (errors.length) return res.status(400).json({ status: 'error', message: errors[0], errors });
+      if (errors.length) {
+        auditService.record({ action: 'AUTH_REGISTRATION_FAILURE', entityType: 'AUTHENTICATION', outcome: 'DENIED', requestId: req.id, metadata: { reason: 'validation_failed' } });
+        return res.status(400).json({ status: 'error', message: errors[0], errors });
+      }
 
       if (db.prepare('SELECT id FROM users WHERE email = ?').get(email)) {
         return res.status(409).json({ status: 'error', message: 'An account with this email already exists.' });
@@ -81,13 +84,17 @@ function createAuthRouter({ db, config, authenticate }) {
       const email = normalizeEmail(req.body?.email);
       const password = req.body?.password;
       if (!isValidEmail(email) || typeof password !== 'string' || password.length === 0) {
+        auditService.record({ action: 'AUTH_LOGIN_FAILURE', entityType: 'AUTHENTICATION', outcome: 'DENIED', requestId: req.id, metadata: { reason: 'invalid_input' } });
         return res.status(400).json({ status: 'error', message: 'Email and password are required.' });
       }
 
       const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-      const invalid = () => res.status(401).json({ status: 'error', message: 'Invalid email or password.' });
-      if (!user || user.status !== 'ACTIVE') return invalid();
-      if (!(await bcrypt.compare(password, user.password_hash))) return invalid();
+      const invalid = (reason) => {
+        auditService.record({ action: 'AUTH_LOGIN_FAILURE', entityType: 'AUTHENTICATION', outcome: 'DENIED', requestId: req.id, metadata: { reason } });
+        return res.status(401).json({ status: 'error', message: 'Invalid email or password.' });
+      };
+      if (!user || user.status !== 'ACTIVE') return invalid(user ? 'inactive_account' : 'invalid_credentials');
+      if (!(await bcrypt.compare(password, user.password_hash))) return invalid('invalid_credentials');
 
       return res.json({
         status: 'success',

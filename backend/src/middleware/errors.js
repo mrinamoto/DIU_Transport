@@ -7,7 +7,7 @@ class AppError extends Error {
 }
 
 function notFound(req, res) {
-  res.status(404).json({ status: 'error', message: 'API endpoint not found.' });
+  res.status(404).json({ status: 'error', message: 'API endpoint not found.', request_id: req.id });
 }
 
 function errorHandler(error, req, res, next) {
@@ -17,6 +17,7 @@ function errorHandler(error, req, res, next) {
   const payload = {
     status: 'error',
     message: statusCode >= 500 ? 'Internal server error.' : error.message,
+    request_id: req.id,
   };
   if (statusCode < 500 && error.details) payload.errors = error.details;
   return res.status(statusCode).json(payload);

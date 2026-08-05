@@ -14,6 +14,11 @@ backend/test/**/*.sqlite3
 *.log
 logs/
 coverage/
+backend/backups/
+backend/exports/
+playwright-report/
+test-results/
+blob-report/
 target/
 build/
 dist/
