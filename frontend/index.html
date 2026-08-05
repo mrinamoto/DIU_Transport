@@ -12,10 +12,10 @@
   <header class="site-header">
     <a class="brand" href="/" aria-label="DIU Transport Schedule home">
       <span class="brand-mark" aria-hidden="true">DT</span>
-      <span><strong>DIU Transport</strong><small>Schedule workspace</small></span>
+      <span><strong>DIU Transport</strong><small>Operations workspace</small></span>
     </a>
     <div class="header-actions">
-      <span id="health-status" class="status-pill">Checking service…</span>
+      <span id="health-status" class="status-pill" role="status">Checking service…</span>
       <button id="logout-button" class="button button-quiet" type="button" hidden>Log out</button>
     </div>
   </header>
@@ -23,13 +23,13 @@
   <main>
     <section id="auth-view" class="auth-layout" aria-labelledby="welcome-title">
       <div class="intro-panel">
-        <p class="eyebrow">Phase 2 secure web baseline</p>
-        <h1 id="welcome-title">A clear route from sign-in to schedule.</h1>
-        <p class="intro-copy">View active transport schedules with an approved account. Administrators can safely manage the same schedule data with assignment and conflict checks.</p>
+        <p class="eyebrow">Secure transport operations</p>
+        <h1 id="welcome-title">Schedules and catalogs, under one clear route.</h1>
+        <p class="intro-copy">Approved users can view active transport schedules. Administrators can manage catalog assignments with conflict checks and a redacted audit trail.</p>
         <dl class="feature-list">
-          <div><dt>Protected</dt><dd>Every schedule requires a valid account.</dd></div>
-          <div><dt>Controlled</dt><dd>Administrative actions are enforced by the server.</dd></div>
-          <div><dt>Isolated</dt><dd>The web database is separate from the legacy desktop project.</dd></div>
+          <div><dt>Protected</dt><dd>Authentication and permissions are enforced by the server.</dd></div>
+          <div><dt>Traceable</dt><dd>Administrative changes receive request IDs and redacted audit records.</dd></div>
+          <div><dt>Isolated</dt><dd>The web database remains separate from the legacy desktop project.</dd></div>
         </dl>
       </div>
 
@@ -38,32 +38,27 @@
           <button id="login-tab" class="tab is-active" type="button" role="tab" aria-selected="true" aria-controls="login-panel">Sign in</button>
           <button id="register-tab" class="tab" type="button" role="tab" aria-selected="false" aria-controls="register-panel">Register</button>
         </div>
-
         <form id="login-panel" class="auth-form" role="tabpanel" aria-labelledby="login-tab">
           <h2>Welcome back</h2>
           <p>Use your registered email and password.</p>
           <label for="login-email">Email</label>
-          <input id="login-email" name="email" type="email" autocomplete="username" required>
+          <input id="login-email" name="email" type="email" autocomplete="username" aria-describedby="login-message" required>
           <label for="login-password">Password</label>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" aria-describedby="login-message" required>
           <button class="button button-primary" type="submit">Sign in</button>
           <p id="login-message" class="form-message" role="alert"></p>
         </form>
-
         <form id="register-panel" class="auth-form" role="tabpanel" aria-labelledby="register-tab" hidden>
           <h2>Create an account</h2>
           <p>Public registration is limited to approved non-admin roles.</p>
           <label for="register-name">Full name</label>
-          <input id="register-name" name="full_name" type="text" autocomplete="name" minlength="2" maxlength="100" required>
+          <input id="register-name" name="full_name" type="text" autocomplete="name" minlength="2" maxlength="100" aria-describedby="register-message" required>
           <label for="register-email">Email</label>
-          <input id="register-email" name="email" type="email" autocomplete="email" required>
+          <input id="register-email" name="email" type="email" autocomplete="email" aria-describedby="register-message" required>
           <label for="register-role">Role</label>
-          <select id="register-role" name="role" required>
-            <option value="STUDENT">Student</option>
-            <option value="TEACHER">Teacher</option>
-          </select>
+          <select id="register-role" name="role" required><option value="STUDENT">Student</option><option value="TEACHER">Teacher</option></select>
           <label for="register-password">Password</label>
-          <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="12" aria-describedby="password-help" required>
+          <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="12" aria-describedby="password-help register-message" required>
           <small id="password-help">Use 12+ characters with upper/lowercase, a number, and a symbol.</small>
           <button class="button button-primary" type="submit">Create account</button>
           <p id="register-message" class="form-message" role="alert"></p>
@@ -73,56 +68,99 @@
 
     <section id="workspace-view" class="workspace" aria-labelledby="workspace-title" hidden>
       <div class="workspace-heading">
-        <div>
-          <p class="eyebrow">Schedule workspace</p>
-          <h1 id="workspace-title">Upcoming transport</h1>
-          <p id="account-summary" class="muted"></p>
-        </div>
-        <button id="refresh-button" class="button button-secondary" type="button">Refresh schedules</button>
+        <div><p class="eyebrow">Transport workspace</p><h1 id="workspace-title">Upcoming transport</h1><p id="account-summary" class="muted"></p></div>
+        <button id="refresh-button" class="button button-secondary" type="button">Refresh current view</button>
       </div>
-
       <div id="workspace-message" class="notice" role="status" hidden></div>
 
-      <section id="admin-panel" class="admin-panel" aria-labelledby="admin-title" hidden>
-        <div class="section-heading">
-          <div><p class="eyebrow">Administrator controls</p><h2 id="admin-title">Manage a schedule</h2></div>
-          <button id="cancel-edit-button" class="button button-quiet" type="button" hidden>Cancel edit</button>
-        </div>
-        <form id="schedule-form" class="schedule-form">
-          <input id="schedule-id" type="hidden">
-          <label for="schedule-route">Route</label>
-          <select id="schedule-route" required></select>
-          <label for="schedule-bus">Bus</label>
-          <select id="schedule-bus" required></select>
-          <label for="schedule-driver">Driver</label>
-          <select id="schedule-driver" required></select>
-          <label for="schedule-date">Service date</label>
-          <input id="schedule-date" type="date" required>
-          <label for="schedule-departure">Departure</label>
-          <input id="schedule-departure" type="time" required>
-          <label for="schedule-arrival">Arrival</label>
-          <input id="schedule-arrival" type="time" required>
-          <label for="schedule-trip-type">Trip type</label>
-          <select id="schedule-trip-type"><option value="REGULAR">Regular</option><option value="SPECIAL">Special</option></select>
-          <label for="schedule-notes">Notes</label>
-          <textarea id="schedule-notes" maxlength="500" rows="3" placeholder="Optional operational note"></textarea>
-          <div class="form-actions"><button id="save-schedule-button" class="button button-primary" type="submit">Create schedule</button></div>
-          <p id="schedule-form-message" class="form-message form-span" role="alert"></p>
-        </form>
-      </section>
+      <nav id="admin-nav" class="admin-nav" aria-label="Administrator workspace" hidden>
+        <button class="nav-button is-active" data-view="schedules" type="button">Schedules</button>
+        <button class="nav-button" data-view="buses" type="button">Buses</button>
+        <button class="nav-button" data-view="drivers" type="button">Drivers</button>
+        <button class="nav-button" data-view="routes" type="button">Routes</button>
+        <button class="nav-button" data-view="audit" type="button">Audit log</button>
+      </nav>
 
-      <section aria-labelledby="schedule-list-title">
-        <div class="section-heading">
-          <div><p class="eyebrow">Live database view</p><h2 id="schedule-list-title">Schedules</h2></div>
-          <span id="schedule-count" class="count-badge">0 trips</span>
-        </div>
-        <div id="schedule-loading" class="loading-state">Loading schedules…</div>
+      <section id="schedules-view" class="management-view" aria-labelledby="schedule-list-title">
+        <section id="schedule-admin" class="admin-panel" aria-labelledby="schedule-admin-title" hidden>
+          <div class="section-heading"><div><p class="eyebrow">Administrator controls</p><h2 id="schedule-admin-title">Manage a schedule</h2></div><button id="cancel-edit-button" class="button button-quiet" type="button" hidden>Cancel edit</button></div>
+          <form id="schedule-form" class="management-form">
+            <input id="schedule-id" type="hidden">
+            <label for="schedule-route">Route</label><select id="schedule-route" required></select>
+            <label for="schedule-bus">Bus</label><select id="schedule-bus" required></select>
+            <label for="schedule-driver">Driver</label><select id="schedule-driver" required></select>
+            <label for="schedule-date">Service date</label><input id="schedule-date" type="date" required>
+            <label for="schedule-departure">Departure</label><input id="schedule-departure" type="time" required>
+            <label for="schedule-arrival">Arrival</label><input id="schedule-arrival" type="time" required>
+            <label for="schedule-trip-type">Trip type</label><select id="schedule-trip-type"><option value="REGULAR">Regular</option><option value="SPECIAL">Special</option></select>
+            <label for="schedule-notes">Notes</label><textarea id="schedule-notes" maxlength="500" rows="3" placeholder="Optional operational note"></textarea>
+            <div class="form-actions"><button id="save-schedule-button" class="button button-primary" type="submit">Create schedule</button></div>
+            <p id="schedule-form-message" class="form-message form-span" role="alert"></p>
+          </form>
+        </section>
+        <div class="section-heading"><div><p class="eyebrow">Live database view</p><h2 id="schedule-list-title">Schedules</h2></div><span id="schedule-count" class="count-badge">0 trips</span></div>
+        <div id="schedule-loading" class="loading-state" role="status">Loading schedules…</div>
         <div id="schedule-empty" class="empty-state" hidden>No schedules are available.</div>
         <div id="schedule-list" class="schedule-grid" aria-live="polite"></div>
       </section>
+
+      <section id="buses-view" class="management-view" aria-labelledby="buses-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Catalog management</p><h2 id="buses-title">Buses</h2></div></div>
+        <form id="bus-form" class="admin-panel compact-form">
+          <input id="bus-id" type="hidden"><label for="bus-number">Bus number</label><input id="bus-number" maxlength="30" required>
+          <label for="bus-capacity">Capacity</label><input id="bus-capacity" type="number" min="1" max="100" required>
+          <label for="bus-status">Status</label><select id="bus-status"><option>ACTIVE</option><option>INACTIVE</option><option>MAINTENANCE</option></select>
+          <div class="form-actions"><button class="button button-primary" type="submit">Save bus</button><button id="bus-cancel" class="button button-quiet" type="button" hidden>Cancel edit</button></div>
+          <p id="bus-message" class="form-message form-span" role="alert"></p>
+        </form>
+        <div id="bus-loading" class="loading-state" role="status">Loading buses…</div><div id="bus-empty" class="empty-state" hidden>No buses found.</div>
+        <div class="table-wrap"><table><caption class="sr-only">Bus catalog</caption><thead><tr><th scope="col">Number</th><th scope="col">Capacity</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="bus-body"></tbody></table></div>
+      </section>
+
+      <section id="drivers-view" class="management-view" aria-labelledby="drivers-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Catalog management</p><h2 id="drivers-title">Drivers</h2></div></div>
+        <form id="driver-form" class="admin-panel compact-form">
+          <input id="driver-id" type="hidden"><label for="driver-name">Full name</label><input id="driver-name" minlength="2" maxlength="100" required>
+          <label for="driver-phone">Phone</label><input id="driver-phone" maxlength="25" aria-describedby="driver-phone-help driver-message" required><small id="driver-phone-help">Use 7–25 dialing characters, such as 000-000-0000.</small>
+          <label for="driver-status">Status</label><select id="driver-status"><option>ACTIVE</option><option>INACTIVE</option></select>
+          <div class="form-actions"><button class="button button-primary" type="submit">Save driver</button><button id="driver-cancel" class="button button-quiet" type="button" hidden>Cancel edit</button></div>
+          <p id="driver-message" class="form-message form-span" role="alert"></p>
+        </form>
+        <div id="driver-loading" class="loading-state" role="status">Loading drivers…</div><div id="driver-empty" class="empty-state" hidden>No drivers found.</div>
+        <div class="table-wrap"><table><caption class="sr-only">Driver catalog</caption><thead><tr><th scope="col">Name</th><th scope="col">Phone</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="driver-body"></tbody></table></div>
+      </section>
+
+      <section id="routes-view" class="management-view" aria-labelledby="routes-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Catalog management</p><h2 id="routes-title">Routes</h2></div></div>
+        <form id="route-form" class="admin-panel compact-form">
+          <input id="route-id" type="hidden"><label for="route-name">Route name</label><input id="route-name" maxlength="100" required>
+          <label for="route-origin">Origin</label><input id="route-origin" maxlength="100" required>
+          <label for="route-destination">Destination</label><input id="route-destination" maxlength="100" required>
+          <label for="route-status">Status</label><select id="route-status"><option>ACTIVE</option><option>INACTIVE</option></select>
+          <label for="route-stops">Ordered stops</label><textarea id="route-stops" rows="4" aria-describedby="route-stops-help" placeholder="One stop per line"></textarea><small id="route-stops-help">Optional; order follows the lines above.</small>
+          <div class="form-actions"><button class="button button-primary" type="submit">Save route</button><button id="route-cancel" class="button button-quiet" type="button" hidden>Cancel edit</button></div>
+          <p id="route-message" class="form-message form-span" role="alert"></p>
+        </form>
+        <div id="route-loading" class="loading-state" role="status">Loading routes…</div><div id="route-empty" class="empty-state" hidden>No routes found.</div>
+        <div class="table-wrap"><table><caption class="sr-only">Route catalog</caption><thead><tr><th scope="col">Route</th><th scope="col">Journey</th><th scope="col">Stops</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="route-body"></tbody></table></div>
+      </section>
+
+      <section id="audit-view" class="management-view" aria-labelledby="audit-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Redacted security record</p><h2 id="audit-title">Audit log</h2></div></div>
+        <form id="audit-filter-form" class="filter-form">
+          <label for="audit-action">Action</label><input id="audit-action" placeholder="BUS_CREATE">
+          <label for="audit-entity">Entity</label><input id="audit-entity" placeholder="BUS">
+          <label for="audit-outcome">Outcome</label><select id="audit-outcome"><option value="">All</option><option>SUCCESS</option><option>DENIED</option><option>CONFLICT</option><option>FAILURE</option></select>
+          <label for="audit-actor">Actor ID</label><input id="audit-actor" type="number" min="1">
+          <label for="audit-start">Start date</label><input id="audit-start" type="date">
+          <label for="audit-end">End date</label><input id="audit-end" type="date">
+          <button class="button button-secondary" type="submit">Apply filters</button>
+        </form>
+        <p id="audit-message" class="form-message" role="alert"></p><div id="audit-loading" class="loading-state" role="status">Loading audit records…</div><div id="audit-empty" class="empty-state" hidden>No audit records match.</div>
+        <div class="table-wrap"><table><caption class="sr-only">Administrator audit log</caption><thead><tr><th scope="col">Time</th><th scope="col">Action</th><th scope="col">Entity</th><th scope="col">Actor</th><th scope="col">Outcome</th><th scope="col">Request ID</th></tr></thead><tbody id="audit-body"></tbody></table></div>
+      </section>
     </section>
   </main>
-
-  <footer><p>Academic demonstration baseline · No real credentials or personal data</p></footer>
+  <footer><p>Academic demonstration · Fictional development data only</p></footer>
 </body>
 </html>

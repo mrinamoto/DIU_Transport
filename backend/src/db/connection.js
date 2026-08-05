@@ -2,9 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
 
-const MIGRATION_VERSION = 1;
-const MIGRATION_NAME = 'phase2_baseline';
-const migrationPath = path.join(__dirname, 'migrations', '001_phase2_baseline.sql');
+const MIGRATIONS = [
+  { version: 1, name: 'phase2_baseline', file: '001_phase2_baseline.sql' },
+  { version: 2, name: 'phase3_catalog_audit', file: '002_phase3_catalog_audit.sql' },
+];
+const MIGRATION_VERSION = MIGRATIONS.at(-1).version;
 
 function configureConnection(db) {
   db.pragma('foreign_keys = ON');
@@ -21,12 +23,12 @@ function listApplicationTables(db) {
   `).all().map((row) => row.name);
 }
 
-function hasMigration(db) {
+function appliedVersions(db) {
   const table = db.prepare(`
     SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'schema_migrations'
   `).get();
-  if (!table) return false;
-  return Boolean(db.prepare('SELECT 1 FROM schema_migrations WHERE version = ?').get(MIGRATION_VERSION));
+  if (!table) return new Set();
+  return new Set(db.prepare('SELECT version FROM schema_migrations').all().map((row) => row.version));
 }
 
 function initializeDatabase(databasePath) {
@@ -40,15 +42,21 @@ function initializeDatabase(databasePath) {
       throw new Error('Refusing to initialize an existing database with an unknown schema.');
     }
 
-    if (!hasMigration(db)) {
-      const migrationSql = fs.readFileSync(migrationPath, 'utf8');
+    const applied = appliedVersions(db);
+    for (const migration of MIGRATIONS) {
+      if (applied.has(migration.version)) continue;
+      if (migration.version > 1 && !applied.has(migration.version - 1)) {
+        throw new Error(`Cannot apply migration ${migration.version} before migration ${migration.version - 1}.`);
+      }
+      const migrationSql = fs.readFileSync(path.join(__dirname, 'migrations', migration.file), 'utf8');
       const applyMigration = db.transaction(() => {
         db.exec(migrationSql);
         db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)')
-          .run(MIGRATION_VERSION, MIGRATION_NAME);
+          .run(migration.version, migration.name);
         db.pragma('optimize');
       });
       applyMigration();
+      applied.add(migration.version);
     }
 
     return db;
@@ -64,11 +72,11 @@ function openDatabase(databasePath) {
   }
 
   const db = configureConnection(new Database(databasePath));
-  if (!hasMigration(db)) {
+  if (!appliedVersions(db).has(MIGRATION_VERSION)) {
     db.close();
     throw new Error('Web database schema is missing or unsupported. Run npm run db:init safely.');
   }
   return db;
 }
 
-module.exports = { initializeDatabase, openDatabase, MIGRATION_VERSION };
+module.exports = { initializeDatabase, openDatabase, listApplicationTables, MIGRATION_VERSION, MIGRATIONS };

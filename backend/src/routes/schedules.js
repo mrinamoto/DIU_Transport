@@ -27,7 +27,7 @@ function createScheduleRouter({ authenticate, scheduleService }) {
 
   router.post('/', authorize('ADMIN'), (req, res, next) => {
     try {
-      const data = scheduleService.create(req.body || {}, req.user.id);
+      const data = scheduleService.create(req.body || {}, req.user.id, { requestId: req.id });
       res.status(201).json({ status: 'success', data });
     } catch (error) {
       next(error);
@@ -36,7 +36,7 @@ function createScheduleRouter({ authenticate, scheduleService }) {
 
   router.patch('/:id', authorize('ADMIN'), (req, res, next) => {
     try {
-      const data = scheduleService.update(Number(req.params.id), req.body || {});
+      const data = scheduleService.update(Number(req.params.id), req.body || {}, req.user.id, { requestId: req.id });
       res.json({ status: 'success', data });
     } catch (error) {
       next(error);
@@ -45,7 +45,7 @@ function createScheduleRouter({ authenticate, scheduleService }) {
 
   router.delete('/:id', authorize('ADMIN'), (req, res, next) => {
     try {
-      const data = scheduleService.deactivate(Number(req.params.id));
+      const data = scheduleService.deactivate(Number(req.params.id), req.user.id, { requestId: req.id });
       res.json({ status: 'success', message: 'Schedule cancelled.', data });
     } catch (error) {
       next(error);

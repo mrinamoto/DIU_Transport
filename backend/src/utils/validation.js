@@ -3,6 +3,10 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const SCHEDULE_STATUSES = new Set(['ACTIVE', 'CANCELLED']);
 const TRIP_TYPES = new Set(['REGULAR', 'SPECIAL']);
+const BUS_STATUSES = new Set(['ACTIVE', 'INACTIVE', 'MAINTENANCE']);
+const STANDARD_STATUSES = new Set(['ACTIVE', 'INACTIVE']);
+const PHONE_PATTERN = /^[+0-9][0-9 ()-]{6,24}$/;
+const PROTECTED_FIELDS = new Set(['id', 'created_at', 'updated_at']);
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -44,11 +48,24 @@ function isValidDate(value) {
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
-function validateScheduleInput(input) {
+const SCHEDULE_FIELDS = new Set([
+  'route_id', 'bus_id', 'driver_id', 'service_date', 'departure_time', 'arrival_time',
+  'trip_type', 'status', 'notes',
+]);
+
+function validateScheduleFields(input) {
   const errors = [];
-  if (Object.prototype.hasOwnProperty.call(input || {}, 'id')) {
-    errors.push('Schedule IDs are assigned by the server.');
+  for (const key of Object.keys(input || {})) {
+    if (key === 'id') errors.push('Schedule IDs are assigned by the server.');
+    else if (['created_at', 'updated_at', 'created_by'].includes(key)) errors.push(`${key} is controlled by the server.`);
+    else if (!SCHEDULE_FIELDS.has(key)) errors.push(`Unknown field: ${key}.`);
   }
+  return errors;
+}
+
+function validateScheduleInput(input, { checkFields = true } = {}) {
+  const errors = [];
+  if (checkFields) errors.push(...validateScheduleFields(input));
 
   const normalized = {
     route_id: parsePositiveId(input?.route_id),
@@ -79,6 +96,73 @@ function validateScheduleInput(input) {
   return { valid: errors.length === 0, errors, value: normalized };
 }
 
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+}
+
+function validateFields(input, allowed) {
+  const errors = [];
+  for (const key of Object.keys(input || {})) {
+    if (PROTECTED_FIELDS.has(key)) errors.push(`${key} is controlled by the server.`);
+    else if (!allowed.has(key)) errors.push(`Unknown field: ${key}.`);
+  }
+  return errors;
+}
+
+function validateBusInput(input) {
+  const errors = validateFields(input, new Set(['bus_number', 'capacity', 'status']));
+  const value = {
+    bus_number: normalizeText(input?.bus_number).toUpperCase(),
+    capacity: Number(input?.capacity),
+    status: normalizeRole(input?.status || 'ACTIVE'),
+  };
+  if (!value.bus_number || value.bus_number.length > 30) errors.push('Bus number must be 1-30 characters.');
+  if (!Number.isInteger(value.capacity) || value.capacity < 1 || value.capacity > 100) {
+    errors.push('Capacity must be an integer between 1 and 100.');
+  }
+  if (!BUS_STATUSES.has(value.status)) errors.push('Bus status must be ACTIVE, INACTIVE, or MAINTENANCE.');
+  return { valid: errors.length === 0, errors, value };
+}
+
+function validateDriverInput(input) {
+  const errors = validateFields(input, new Set(['full_name', 'phone', 'status']));
+  const value = {
+    full_name: normalizeText(input?.full_name),
+    phone: normalizeText(input?.phone),
+    status: normalizeRole(input?.status || 'ACTIVE'),
+  };
+  if (value.full_name.length < 2 || value.full_name.length > 100) errors.push('Driver name must be 2-100 characters.');
+  if (!PHONE_PATTERN.test(value.phone)) errors.push('Phone must contain 7-25 practical dialing characters.');
+  if (!STANDARD_STATUSES.has(value.status)) errors.push('Driver status must be ACTIVE or INACTIVE.');
+  return { valid: errors.length === 0, errors, value };
+}
+
+function validateRouteInput(input) {
+  const errors = validateFields(input, new Set(['route_name', 'origin', 'destination', 'status', 'stops']));
+  const value = {
+    route_name: normalizeText(input?.route_name),
+    origin: normalizeText(input?.origin),
+    destination: normalizeText(input?.destination),
+    status: normalizeRole(input?.status || 'ACTIVE'),
+    stops: input?.stops === undefined ? [] : input.stops,
+  };
+  if (!value.route_name || value.route_name.length > 100) errors.push('Route name must be 1-100 characters.');
+  if (!value.origin || value.origin.length > 100) errors.push('Origin must be 1-100 characters.');
+  if (!value.destination || value.destination.length > 100) errors.push('Destination must be 1-100 characters.');
+  if (value.origin && value.destination && value.origin.toLowerCase() === value.destination.toLowerCase()) {
+    errors.push('Origin and destination must be different.');
+  }
+  if (!STANDARD_STATUSES.has(value.status)) errors.push('Route status must be ACTIVE or INACTIVE.');
+  if (!Array.isArray(value.stops) || value.stops.length > 50) {
+    errors.push('Stops must be an array containing at most 50 names.');
+    value.stops = [];
+  } else {
+    value.stops = value.stops.map(normalizeText);
+    if (value.stops.some((stop) => !stop || stop.length > 100)) errors.push('Each stop must be 1-100 characters.');
+  }
+  return { valid: errors.length === 0, errors, value };
+}
+
 module.exports = {
   isNonEmptyString,
   normalizeEmail,
@@ -86,4 +170,9 @@ module.exports = {
   isValidEmail,
   validatePassword,
   validateScheduleInput,
+  validateScheduleFields,
+  validateBusInput,
+  validateDriverInput,
+  validateRouteInput,
+  normalizeText,
 };

@@ -1,18 +1,28 @@
 {
   "name": "diu-transport-system",
   "version": "1.0.0",
-  "description": "DIU Transport Schedule System - secure Phase 2 web baseline",
+  "description": "DIU Transport Schedule System - Phase 3 catalog and security baseline",
   "main": "backend/src/server.js",
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
     "check": "node backend/src/scripts/check.js",
-    "test": "node --test --test-concurrency=1 backend/test/integration.test.js",
+    "test": "node --test --test-concurrency=1 backend/test/integration.test.js backend/test/phase3.test.js backend/test/database-operations.test.js",
+    "test:phase2": "node --test --test-concurrency=1 backend/test/integration.test.js",
+    "test:phase3": "node --test --test-concurrency=1 backend/test/phase3.test.js backend/test/database-operations.test.js",
+    "test:browser": "playwright test",
     "db:init": "node backend/src/db/init.js",
     "db:seed": "node backend/src/db/seed.js",
-    "admin:create": "node backend/src/scripts/createAdmin.js"
+    "admin:create": "node backend/src/scripts/createAdmin.js",
+    "db:backup": "node backend/src/scripts/backupDatabase.js",
+    "db:backup:verify": "node backend/src/scripts/verifyBackup.js",
+    "db:export": "node backend/src/scripts/exportDatabase.js"
   },
-  "keywords": ["diu", "transport", "schedule"],
+  "keywords": [
+    "diu",
+    "transport",
+    "schedule"
+  ],
   "author": "",
   "license": "UNLICENSED",
   "private": true,
@@ -22,12 +32,17 @@
   },
   "packageManager": "npm@11.16.0",
   "dependencies": {
-    "better-sqlite3": "^12.11.1",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.11.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.6.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.62.1"
   }
 }
