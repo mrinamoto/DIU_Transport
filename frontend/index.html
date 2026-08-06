@@ -8,8 +8,10 @@
   <link rel="stylesheet" href="/css/styles.css">
   <script src="/js/app.js" defer></script>
   <script src="/js/phase4.js" defer></script>
+  <script src="/js/phase5.js" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#workspace-title">Skip to main workspace</a>
   <header class="site-header">
     <a class="brand" href="/" aria-label="DIU Transport Schedule home">
       <span class="brand-mark" aria-hidden="true">DT</span>
@@ -64,6 +66,9 @@
           <button class="button button-primary" type="submit">Create account</button>
           <p id="register-message" class="form-message" role="alert"></p>
         </form>
+        <details class="recovery-panel"><summary>Complete account recovery</summary>
+          <form id="recovery-form" class="auth-form"><label for="recovery-token">One-time token</label><input id="recovery-token" autocomplete="off" required><label for="recovery-password">New password</label><input id="recovery-password" type="password" autocomplete="new-password" minlength="12" required><button class="button button-secondary" type="submit">Reset password</button><p id="recovery-message" class="form-message" role="alert"></p></form>
+        </details>
       </div>
     </section>
 
@@ -85,6 +90,9 @@
         <button class="nav-button" data-view="notifications" type="button">Notifications</button>
         <button class="nav-button" data-view="contacts" type="button">Emergency contacts</button>
         <button class="nav-button" data-view="feedback" type="button">Feedback</button>
+        <button class="nav-button" data-view="users" type="button">Users</button>
+        <button class="nav-button" data-view="outbox" type="button">Outbox</button>
+        <button class="nav-button" data-view="operations" type="button">Operations</button>
       </nav>
       <nav id="user-nav" class="admin-nav" aria-label="Transport support workspace" hidden>
         <button class="nav-button is-active" data-view="schedules" type="button">Schedules</button>
@@ -209,6 +217,23 @@
         <div class="section-heading"><div><p class="eyebrow">Support channel</p><h2 id="feedback-title">Feedback</h2></div></div>
         <form id="feedback-form" class="admin-panel compact-form"><label for="feedback-category">Category</label><select id="feedback-category"><option>SCHEDULE</option><option>ROUTE</option><option>BUS_SERVICE</option><option>DRIVER_BEHAVIOR</option><option>SAFETY</option><option>APPLICATION</option><option>OTHER</option></select><label for="feedback-subject">Subject</label><input id="feedback-subject" maxlength="150" required><label for="feedback-message-input">Message</label><textarea id="feedback-message-input" maxlength="2000" required></textarea><div class="form-actions"><button class="button button-primary" type="submit">Submit feedback</button></div><p id="feedback-message" class="form-message form-span" role="alert"></p></form>
         <div id="feedback-list" class="record-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="users-view" class="management-view" aria-labelledby="users-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Identity lifecycle</p><h2 id="users-title">User administration</h2></div></div>
+        <p>Role and security changes immediately revoke earlier sessions. The final active administrator is protected.</p>
+        <div id="user-admin-list" class="record-grid" aria-live="polite"></div>
+        <dialog id="recovery-dialog" aria-labelledby="recovery-dialog-title"><h2 id="recovery-dialog-title">One-time recovery token</h2><p>Copy this synthetic-development handover token now. It is not stored in plaintext.</p><output id="recovery-output" class="token-output"></output><form method="dialog"><button id="recovery-close" class="button button-primary">Close and clear</button></form></dialog>
+      </section>
+
+      <section id="outbox-view" class="management-view" aria-labelledby="outbox-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Delivery boundary</p><h2 id="outbox-title">Notification outbox</h2></div></div>
+        <p>Phase 5 uses the local NOOP provider only; no external messages are sent.</p><div id="outbox-list" class="record-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="operations-view" class="management-view" aria-labelledby="operations-title" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Safe observability</p><h2 id="operations-title">Operations metrics</h2></div></div>
+        <div id="operations-metrics" class="record-grid" aria-live="polite"></div>
       </section>
     </section>
   </main>

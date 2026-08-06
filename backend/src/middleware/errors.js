@@ -13,7 +13,7 @@ function notFound(req, res) {
 function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
   const statusCode = error.statusCode || 500;
-  if (statusCode >= 500) console.error('Unhandled application error:', error);
+  if (statusCode >= 500) console.error(JSON.stringify({ timestamp: new Date().toISOString(), severity: 'error', event: 'unhandled_application_error', request_id: req.id, outcome: 'failure' }));
   const payload = {
     status: 'error',
     message: statusCode >= 500 ? 'Internal server error.' : error.message,

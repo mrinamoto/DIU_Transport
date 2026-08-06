@@ -1,6 +1,7 @@
 const { rateLimit } = require('express-rate-limit');
 
-function controlledHandler(req, res) {
+function controlledHandler(metricsService, req, res) {
+  metricsService?.increment('rate_limits');
   res.status(429).json({
     status: 'error',
     message: 'Too many requests. Please try again later.',
@@ -8,11 +9,11 @@ function controlledHandler(req, res) {
   });
 }
 
-function createRateLimits(config) {
+function createRateLimits(config, metricsService) {
   const shared = {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    handler: controlledHandler,
+    handler: (req, res) => controlledHandler(metricsService, req, res),
   };
   return {
     apiLimiter: rateLimit({ ...shared, windowMs: config.apiRateLimitWindowMs, limit: config.apiRateLimitMax }),

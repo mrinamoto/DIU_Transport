@@ -26,24 +26,37 @@ const { createNotificationRouter } = require('./routes/notifications');
 const { createSpecialTripRouter } = require('./routes/specialTrips');
 const { createContactRouter } = require('./routes/contacts');
 const { createFeedbackRouter, createAdminFeedbackRouter } = require('./routes/feedback');
+const { MIGRATION_VERSION } = require('./db/connection');
+const { createIdentityService } = require('./services/identityService');
+const { createOutboxService } = require('./services/outboxService');
+const { createMetricsService } = require('./services/metricsService');
+const { createOperationalLogging } = require('./middleware/operationalLogging');
+const { createAdminUsersRouter } = require('./routes/adminUsers');
+const { createAccountRouter } = require('./routes/account');
+const { createOutboxRouter } = require('./routes/outbox');
+const { createOperationsRouter } = require('./routes/operations');
 
-function createApp({ db, config }) {
+function createApp({ db, config, logSink }) {
   const app = express();
   const frontendDirectory = path.join(config.projectRoot, 'frontend');
   const auditService = createAuditService(db);
   const authenticate = createAuthenticate({ db, config });
-  const notificationService = createNotificationService(db, auditService, { pageSizeMax: config.notificationPageSizeMax });
+  const metricsService = createMetricsService(db, { enabled: config.metricsEnabled });
+  const outboxService = createOutboxService(db, auditService, { maxAttempts: config.outboxMaxAttempts });
+  const identityService = createIdentityService(db, auditService, config);
+  const notificationService = createNotificationService(db, auditService, { pageSizeMax: config.notificationPageSizeMax, outboxService });
   const scheduleService = createScheduleService(db, auditService, notificationService);
   const catalogService = createCatalogService(db, auditService);
   const employeeService = createEmployeeService(db, auditService);
   const contactService = createContactService(db, auditService);
   const feedbackService = createFeedbackService(db, auditService, { pageSizeMax: config.feedbackPageSizeMax });
   const specialTripService = createSpecialTripService(db, auditService, scheduleService, notificationService, { pageSizeMax: config.specialTripPageSizeMax });
-  const { apiLimiter, authLimiter, feedbackLimiter } = createRateLimits(config);
+  const { apiLimiter, authLimiter, feedbackLimiter } = createRateLimits(config, metricsService);
 
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
   app.use(requestId);
+  app.use(createOperationalLogging({ config, metricsService, sink: logSink || console.log }));
   app.use(helmet());
   app.use(cors({
     origin(origin, callback) {
@@ -58,8 +71,12 @@ function createApp({ db, config }) {
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register', authLimiter);
 
-  app.use('/api/health', createHealthRouter({ db, version: packageJson.version }));
-  app.use('/api/auth', createAuthRouter({ db, config, authenticate, auditService }));
+  app.use('/api/health', createHealthRouter({ db, version: packageJson.version, schemaVersion: MIGRATION_VERSION, config }));
+  app.use('/api/auth', createAuthRouter({ db, config, authenticate, auditService, identityService, metricsService }));
+  app.use('/api/account', createAccountRouter({ authenticate, identityService }));
+  app.use('/api/admin/users', createAdminUsersRouter({ authenticate, identityService }));
+  app.use('/api/admin/outbox', createOutboxRouter({ authenticate, outboxService }));
+  app.use('/api/admin/operations', createOperationsRouter({ authenticate, metricsService }));
   app.use('/api/catalog', createCatalogRouter({ db, authenticate }));
   app.use('/api/schedules', createScheduleRouter({ authenticate, scheduleService }));
   for (const type of ['buses', 'drivers', 'routes']) {

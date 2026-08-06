@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 function createAuthenticate({ db, config }) {
   const findUser = db.prepare(`
-    SELECT id, full_name, email, role, status
+    SELECT id, full_name, email, role, status, security_status, auth_version
     FROM users WHERE id = ?
   `);
 
@@ -29,7 +29,7 @@ function createAuthenticate({ db, config }) {
     try {
       const userId = Number(payload.sub);
       const user = findUser.get(userId);
-      if (!user || user.status !== 'ACTIVE') {
+      if (!user || user.status !== 'ACTIVE' || user.security_status !== 'ACTIVE' || payload.ver !== user.auth_version) {
         return res.status(401).json({ status: 'error', message: 'Authentication is invalid or inactive.' });
       }
       req.user = user;
