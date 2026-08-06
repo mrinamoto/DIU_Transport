@@ -18,13 +18,14 @@ function publicUser(row) {
     email: row.email,
     role: row.role,
     status: row.status,
+    security_status: row.security_status,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
 }
 
 function signToken(user, config) {
-  return jwt.sign({}, config.authSecret, {
+  return jwt.sign({ ver: user.auth_version }, config.authSecret, {
     algorithm: 'HS256',
     subject: String(user.id),
     expiresIn: config.authExpiresIn,
@@ -33,7 +34,7 @@ function signToken(user, config) {
   });
 }
 
-function createAuthRouter({ db, config, authenticate, auditService }) {
+function createAuthRouter({ db, config, authenticate, auditService, identityService, metricsService }) {
   const router = express.Router();
 
   router.post('/register', async (req, res, next) => {
@@ -88,13 +89,29 @@ function createAuthRouter({ db, config, authenticate, auditService }) {
         return res.status(400).json({ status: 'error', message: 'Email and password are required.' });
       }
 
-      const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+      let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
       const invalid = (reason) => {
+        metricsService?.increment('authentication_failures');
         auditService.record({ action: 'AUTH_LOGIN_FAILURE', entityType: 'AUTHENTICATION', outcome: 'DENIED', requestId: req.id, metadata: { reason } });
         return res.status(401).json({ status: 'error', message: 'Invalid email or password.' });
       };
-      if (!user || user.status !== 'ACTIVE') return invalid(user ? 'inactive_account' : 'invalid_credentials');
-      if (!(await bcrypt.compare(password, user.password_hash))) return invalid('invalid_credentials');
+      if (!user || user.status !== 'ACTIVE' || user.security_status === 'SUSPENDED') return invalid(user ? 'unavailable_account' : 'invalid_credentials');
+      if (user.security_status === 'LOCKED' && user.locked_until && Date.parse(user.locked_until) > Date.now()) return invalid('locked_account');
+      if (user.security_status === 'LOCKED') {
+        db.prepare("UPDATE users SET security_status='ACTIVE',failed_login_count=0,locked_until=NULL,security_updated_at=CURRENT_TIMESTAMP WHERE id=?").run(user.id);
+        user = db.prepare('SELECT * FROM users WHERE id=?').get(user.id);
+      }
+      if (!(await bcrypt.compare(password, user.password_hash))) {
+        const count = user.failed_login_count + 1;
+        if (count >= config.accountLockThreshold) {
+          const lockedUntil = new Date(Date.now() + config.accountLockDurationMinutes * 60000).toISOString();
+          db.prepare("UPDATE users SET failed_login_count=?,security_status='LOCKED',locked_until=?,auth_version=auth_version+1,security_updated_at=CURRENT_TIMESTAMP WHERE id=?").run(count, lockedUntil, user.id);
+          auditService.record({ action: 'AUTH_ACCOUNT_LOCKED', entityType: 'USER', entityId: user.id, outcome: 'DENIED', requestId: req.id, metadata: { duration_minutes: config.accountLockDurationMinutes } });
+        } else db.prepare('UPDATE users SET failed_login_count=? WHERE id=?').run(count, user.id);
+        return invalid('invalid_credentials');
+      }
+      db.prepare('UPDATE users SET failed_login_count=0,locked_until=NULL,last_login_at=CURRENT_TIMESTAMP WHERE id=?').run(user.id);
+      user = db.prepare('SELECT * FROM users WHERE id=?').get(user.id);
 
       return res.json({
         status: 'success',
@@ -108,6 +125,13 @@ function createAuthRouter({ db, config, authenticate, auditService }) {
 
   router.get('/me', authenticate, (req, res) => {
     res.json({ status: 'success', user: publicUser(req.user) });
+  });
+
+  router.post('/recovery/complete', async (req, res, next) => {
+    try {
+      await identityService.completeRecovery(req.body?.token, req.body?.password, req.id);
+      res.json({ status: 'success', message: 'Password recovery completed. Sign in again.' });
+    } catch (error) { next(error); }
   });
 
   return router;

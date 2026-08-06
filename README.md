@@ -1,5 +1,37 @@
 # DIU Transport Schedule System
 
+## Phase 5 production-readiness foundation
+
+The Node.js/Express application remains the canonical web implementation and SQLite remains its canonical development database. Phase 5 adds administrator-controlled account lifecycle states, account lockout, immediate JWT revocation through `auth_version`, final-active-administrator protection, and hash-only single-use password recovery. Public registration remains limited to `STUDENT` and `TEACHER`.
+
+Administrators can use the web workspace to inspect users, deactivate/reactivate accounts, revoke sessions, initiate a one-time local recovery handoff, inspect the NOOP notification outbox, and view safe operational metrics. Users can complete recovery and export their own allowlisted account data. Administrative exports are audited.
+
+Published in-app notifications now enqueue a transactionally coupled, idempotent `NOOP` outbox job. No email, SMS, push, or other network provider is implemented. Structured request logs contain only allowlisted operational fields. `/api/health/live` is process liveness, `/api/health/ready` checks database/schema/configuration readiness, and `/api/admin/operations/metrics` is administrator-protected.
+
+Governance commands:
+
+```powershell
+npm run data:retention:plan
+npm run data:retention:apply
+npm run postgres:rehearse
+```
+
+Retention planning is always non-destructive. Apply additionally requires `NODE_ENV=development`, `RETENTION_APPLY_GUARD=ALLOW_SYNTHETIC_RETENTION`, a database contained by the explicit `RETENTION_ALLOWED_DATABASE_ROOT`, the command confirmation flag, and a verified backup. Do not run apply against the normal development database. PostgreSQL rehearsal is synthetic-only and refuses to connect unless its safety gates are explicitly supplied; SQLite is not replaced.
+
+Phase 5 verification commands:
+
+```powershell
+npm run check
+npm test
+npm run test:phase5
+npm run test:browser
+npm run db:backup
+npm run db:backup:verify
+npm run db:export
+```
+
+Operational and recovery guidance is under `docs/phase-5/`, including the data classification, retention boundary, notification provider boundary, browser/accessibility evidence, disaster-recovery rehearsal, and incident runbooks. These controls are a production-readiness foundation, not a deployment or production SLA.
+
 Phase 4 keeps the Node.js/Express web application as the canonical implementation and adds transport-operations and support workflows to the verified Phase 3 security baseline. The Java 17 Swing application remains unchanged legacy/reference code and must not use the web database.
 
 SQLite is suitable for this controlled development baseline only. This phase does not deploy the application or claim production readiness.

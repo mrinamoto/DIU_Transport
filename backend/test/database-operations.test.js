@@ -25,7 +25,7 @@ test('fresh initialization applies every migration at the current schema version
   finally{db.close();}
 });
 
-test('a Phase 2 database upgrades non-destructively through Phase 4',()=>{
+test('a Phase 2 database upgrades non-destructively through Phase 5',()=>{
   const upgradePath=path.join(temporaryDirectory,'upgrade.db');const legacy=new Database(upgradePath);
   legacy.exec(fs.readFileSync(path.join(__dirname,'../src/db/migrations/001_phase2_baseline.sql'),'utf8'));
   legacy.prepare("INSERT INTO schema_migrations(version,name) VALUES(1,'phase2_baseline')").run();
@@ -33,7 +33,7 @@ test('a Phase 2 database upgrades non-destructively through Phase 4',()=>{
   const upgraded=initializeDatabase(upgradePath);try{assert.equal(upgraded.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version,MIGRATION_VERSION);assert.ok(upgraded.prepare("SELECT id FROM buses WHERE bus_number='UPGRADE-PRESERVED'").get());assert.ok(upgraded.prepare("SELECT name FROM sqlite_schema WHERE name='audit_logs'").get());assert.ok(upgraded.prepare("SELECT name FROM sqlite_schema WHERE name='feedback'").get());}finally{upgraded.close();}
 });
 
-test('a Phase 3 database upgrades non-destructively to Phase 4',()=>{
+test('a Phase 3 database upgrades non-destructively to Phase 5',()=>{
   const upgradePath=path.join(temporaryDirectory,'phase3-upgrade.db');const legacy=new Database(upgradePath);
   legacy.exec(fs.readFileSync(path.join(__dirname,'../src/db/migrations/001_phase2_baseline.sql'),'utf8'));
   legacy.prepare("INSERT INTO schema_migrations(version,name) VALUES(1,'phase2_baseline')").run();
@@ -41,6 +41,13 @@ test('a Phase 3 database upgrades non-destructively to Phase 4',()=>{
   legacy.prepare("INSERT INTO schema_migrations(version,name) VALUES(2,'phase3_catalog_audit')").run();
   legacy.prepare("INSERT INTO routes(route_name,origin,destination) VALUES('P3-PRESERVED','Synthetic A','Synthetic B')").run();legacy.close();
   const upgraded=initializeDatabase(upgradePath);try{assert.equal(upgraded.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version,MIGRATION_VERSION);assert.ok(upgraded.prepare("SELECT id FROM routes WHERE route_name='P3-PRESERVED'").get());assert.ok(upgraded.prepare("SELECT name FROM sqlite_schema WHERE name='special_trips'").get());assert.equal(upgraded.pragma('foreign_key_check').length,0);}finally{upgraded.close();}
+});
+
+test('a Phase 4 database upgrades non-destructively to Phase 5',()=>{
+  const upgradePath=path.join(temporaryDirectory,'phase4-upgrade.db');const legacy=new Database(upgradePath);
+  for(const [version,file,name]of[[1,'001_phase2_baseline.sql','phase2_baseline'],[2,'002_phase3_catalog_audit.sql','phase3_catalog_audit'],[3,'003_phase4_operations_support.sql','phase4_operations_support']]){legacy.exec(fs.readFileSync(path.join(__dirname,'../src/db/migrations',file),'utf8'));legacy.prepare('INSERT INTO schema_migrations(version,name) VALUES(?,?)').run(version,name);}
+  legacy.prepare("INSERT INTO users(full_name,email,password_hash,role) VALUES('Fictional Preserved User','preserved.phase4@example.test','synthetic-hash','STUDENT')").run();legacy.close();
+  const upgraded=initializeDatabase(upgradePath);try{const user=upgraded.prepare("SELECT security_status,auth_version FROM users WHERE email='preserved.phase4@example.test'").get();assert.deepEqual(user,{security_status:'ACTIVE',auth_version:1});assert.ok(upgraded.prepare("SELECT name FROM sqlite_schema WHERE name='notification_outbox'").get());assert.equal(upgraded.pragma('foreign_key_check').length,0);}finally{upgraded.close();}
 });
 
 test('SQLite-safe backup and temporary restore verification preserve the active database',async()=>{

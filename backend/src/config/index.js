@@ -49,6 +49,13 @@ function parseTrustProxy(value) {
   throw new Error('TRUST_PROXY must be false, true, or a hop count from 0 to 10.');
 }
 
+function parseBoolean(value, fallback, name) {
+  const normalized = String(value ?? fallback).trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  throw new Error(`${name} must be true or false.`);
+}
+
 function resolveProjectPath(value, fallback) {
   const configured = value || fallback;
   return path.isAbsolute(configured) ? configured : path.resolve(projectRoot, configured);
@@ -56,13 +63,14 @@ function resolveProjectPath(value, fallback) {
 
 function createConfig({ env = process.env, requireAuthSecret = true } = {}) {
   const authSecret = env.AUTH_SECRET || '';
+  const nodeEnv = env.NODE_ENV || 'development';
   if (requireAuthSecret && authSecret.length < 32) {
     throw new Error('AUTH_SECRET must be configured with at least 32 characters.');
   }
 
   return Object.freeze({
     projectRoot,
-    nodeEnv: env.NODE_ENV || 'development',
+    nodeEnv,
     port: parsePort(env.PORT || '5000'),
     clientOrigin: env.CLIENT_ORIGIN || 'http://localhost:5000',
     databasePath: resolveDatabasePath(env.WEB_DATABASE_PATH),
@@ -84,6 +92,16 @@ function createConfig({ env = process.env, requireAuthSecret = true } = {}) {
     notificationPageSizeMax: parsePositiveInteger(env.NOTIFICATION_PAGE_SIZE_MAX, '100', 'NOTIFICATION_PAGE_SIZE_MAX', { max: 250 }),
     feedbackPageSizeMax: parsePositiveInteger(env.FEEDBACK_PAGE_SIZE_MAX, '100', 'FEEDBACK_PAGE_SIZE_MAX', { max: 250 }),
     specialTripPageSizeMax: parsePositiveInteger(env.SPECIAL_TRIP_PAGE_SIZE_MAX, '100', 'SPECIAL_TRIP_PAGE_SIZE_MAX', { max: 250 }),
+    identityPageSizeMax: parsePositiveInteger(env.IDENTITY_PAGE_SIZE_MAX, '100', 'IDENTITY_PAGE_SIZE_MAX', { max: 250 }),
+    accountLockThreshold: parsePositiveInteger(env.ACCOUNT_LOCK_THRESHOLD, '5', 'ACCOUNT_LOCK_THRESHOLD', { min: 2, max: 20 }),
+    accountLockDurationMinutes: parsePositiveInteger(env.ACCOUNT_LOCK_DURATION_MINUTES, '15', 'ACCOUNT_LOCK_DURATION_MINUTES', { max: 1440 }),
+    recoveryTokenTtlMinutes: parsePositiveInteger(env.RECOVERY_TOKEN_TTL_MINUTES, '15', 'RECOVERY_TOKEN_TTL_MINUTES', { min: 5, max: 1440 }),
+    outboxMaxAttempts: parsePositiveInteger(env.OUTBOX_MAX_ATTEMPTS, '3', 'OUTBOX_MAX_ATTEMPTS', { max: 20 }),
+    metricsEnabled: parseBoolean(env.METRICS_ENABLED, 'true', 'METRICS_ENABLED'),
+    operationalLogEnabled: parseBoolean(env.OPERATIONAL_LOG_ENABLED, nodeEnv === 'test' ? 'false' : 'true', 'OPERATIONAL_LOG_ENABLED'),
+    logLevel: env.LOG_LEVEL || 'info',
+    retentionApplyGuard: env.RETENTION_APPLY_GUARD || '',
+    retentionAllowedDatabaseRoot: env.RETENTION_ALLOWED_DATABASE_ROOT ? resolveProjectPath(env.RETENTION_ALLOWED_DATABASE_ROOT, '') : null,
   });
 }
 

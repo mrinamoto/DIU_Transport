@@ -1,23 +1,27 @@
 {
   "name": "diu-transport-system",
   "version": "1.0.0",
-  "description": "DIU Transport Schedule System - Phase 4 operations and support baseline",
+  "description": "DIU Transport Schedule System - Phase 5 production-readiness foundation",
   "main": "backend/src/server.js",
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
     "check": "node backend/src/scripts/check.js",
-    "test": "node --test --test-concurrency=1 backend/test/integration.test.js backend/test/phase3.test.js backend/test/database-operations.test.js backend/test/phase4.test.js",
+    "test": "node --test --test-concurrency=1 backend/test/integration.test.js backend/test/phase3.test.js backend/test/database-operations.test.js backend/test/phase4.test.js backend/test/phase5.test.js backend/test/phase5-governance.test.js",
     "test:phase2": "node --test --test-concurrency=1 backend/test/integration.test.js",
     "test:phase3": "node --test --test-concurrency=1 backend/test/phase3.test.js backend/test/database-operations.test.js",
     "test:phase4": "node --test --test-concurrency=1 backend/test/phase4.test.js",
+    "test:phase5": "node --test --test-concurrency=1 backend/test/phase5.test.js backend/test/phase5-governance.test.js",
     "test:browser": "playwright test",
     "db:init": "node backend/src/db/init.js",
     "db:seed": "node backend/src/db/seed.js",
     "admin:create": "node backend/src/scripts/createAdmin.js",
     "db:backup": "node backend/src/scripts/backupDatabase.js",
     "db:backup:verify": "node backend/src/scripts/verifyBackup.js",
-    "db:export": "node backend/src/scripts/exportDatabase.js"
+    "db:export": "node backend/src/scripts/exportDatabase.js",
+    "data:retention:plan": "node backend/src/scripts/retention.js",
+    "data:retention:apply": "node backend/src/scripts/retention.js --apply --confirm-retention",
+    "postgres:rehearse": "node backend/src/scripts/postgresRehearsal.js"
   },
   "keywords": [
     "diu",

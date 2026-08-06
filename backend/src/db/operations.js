@@ -9,6 +9,7 @@ const REQUIRED_TABLES = [
   'audit_logs', 'buses', 'drivers', 'employees', 'emergency_contacts', 'feedback',
   'notification_reads', 'notifications', 'route_stops', 'routes', 'schedules',
   'schema_migrations', 'special_trips', 'users',
+  'password_recovery_tokens', 'notification_outbox', 'data_lifecycle_runs',
 ];
 
 function timestampedName(prefix, extension) {
@@ -83,7 +84,7 @@ function createSanitizedExport(sourcePath, exportDirectory) {
   try {
     const summary = databaseSummary(db);
     const data = {
-      users: db.prepare('SELECT id, role, status, created_at, updated_at FROM users ORDER BY id').all(),
+      users: db.prepare('SELECT id, role, status, security_status, auth_version, created_at, updated_at FROM users ORDER BY id').all(),
       buses: db.prepare('SELECT id, bus_number, capacity, status, created_at, updated_at FROM buses ORDER BY id').all(),
       drivers: db.prepare('SELECT id, status, created_at, updated_at FROM drivers ORDER BY id').all(),
       routes: db.prepare('SELECT id, route_name, origin, destination, status, created_at, updated_at FROM routes ORDER BY id').all(),
@@ -96,6 +97,9 @@ function createSanitizedExport(sourcePath, exportDirectory) {
       notification_reads: db.prepare('SELECT notification_id, user_id, read_at FROM notification_reads ORDER BY notification_id, user_id').all(),
       emergency_contacts: db.prepare('SELECT id, contact_role, availability, display_order, status, created_at, updated_at FROM emergency_contacts ORDER BY id').all(),
       feedback: db.prepare('SELECT id, submitted_by, category, status, assigned_to, resolved_at, created_at, updated_at FROM feedback ORDER BY id').all(),
+      password_recovery_tokens: db.prepare('SELECT id, user_id, expires_at, used_at, revoked_at, created_by, created_at FROM password_recovery_tokens ORDER BY id').all(),
+      notification_outbox: db.prepare('SELECT id, notification_id, channel, recipient_reference, status, attempt_count, available_at, last_error_code, idempotency_key, created_at, updated_at FROM notification_outbox ORDER BY id').all(),
+      data_lifecycle_runs: db.prepare('SELECT id, operation, mode, candidate_counts_json, outcome, created_at FROM data_lifecycle_runs ORDER BY id').all(),
     };
     const payload = {
       manifest: {
@@ -104,7 +108,8 @@ function createSanitizedExport(sourcePath, exportDirectory) {
         generated_at: new Date().toISOString(),
         tables: Object.entries(data).map(([table, rows]) => ({ table, row_count: rows.length })),
         excluded_fields: [
-          'users.full_name', 'users.email', 'users.password_hash', 'drivers.full_name', 'drivers.phone',
+          'users.full_name', 'users.email', 'users.password_hash', 'users.failed_login_count', 'users.locked_until', 'users.last_login_at', 'drivers.full_name', 'drivers.phone',
+          'password_recovery_tokens.token_hash',
           'employees.full_name', 'employees.phone', 'employees.email', 'employees.notes',
           'special_trips.title', 'special_trips.description', 'special_trips.organizer',
           'notifications.title', 'notifications.message',
